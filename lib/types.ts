@@ -1,14 +1,14 @@
-export const TRIP_TYPES = [
+export const ACTIVITIES = [
   "Backpacking",
   "Kayaking",
   "Hut-to-Hut",
   "Car Camping",
   "Bikepacking",
   "Fastpacking",
-  "Day Hike",
+  "City / town exploring",
 ] as const
 
-export type TripType = (typeof TRIP_TYPES)[number]
+export type Activity = (typeof ACTIVITIES)[number]
 
 export const SEASONS = ["Summer", "Shoulder Season", "Winter"] as const
 export type Season = (typeof SEASONS)[number]
@@ -47,7 +47,7 @@ export type Trip = {
   /** Short shareable code; also the DB key. */
   code?: string
   name: string
-  type: TripType
+  activities: Activity[]
   season: Season
   nights: number
   people: Person[]
@@ -56,12 +56,14 @@ export type Trip = {
   createdAt: number
   /** Last server-write timestamp (ms), used for sync conflict resolution. */
   updatedAt?: number
+  /** @deprecated Legacy single trip type kept for old saved trips. */
+  type?: string
 }
 
 export type TripSummary = {
   code: string
   name: string
-  type: TripType
+  activities: Activity[]
   season: Season
   nights: number
   packed: number
@@ -71,4 +73,14 @@ export type TripSummary = {
 
 export function emptyWeather(): Weather {
   return { rain: false, cold: false, buggy: false, international: false }
+}
+
+/**
+ * Returns the activities for a trip, falling back to the legacy single `type`
+ * field for trips created before activities were multi-select.
+ */
+export function tripActivities(trip: { activities?: Activity[]; type?: string }): string[] {
+  if (trip.activities && trip.activities.length > 0) return trip.activities
+  if (trip.type) return [trip.type]
+  return []
 }

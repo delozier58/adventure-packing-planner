@@ -4,7 +4,7 @@ import { customAlphabet } from "nanoid"
 import { eq, inArray } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { sharedTrips } from "@/lib/db/schema"
-import type { Trip, TripSummary } from "@/lib/types"
+import { tripActivities, type Activity, type Trip, type TripSummary } from "@/lib/types"
 
 // Unambiguous alphabet (no 0/O/1/I/l) for human-friendly share codes.
 const makeCode = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 7)
@@ -14,7 +14,7 @@ function summarize(code: string, data: Trip, updatedAt: Date): TripSummary {
   return {
     code,
     name: data.name,
-    type: data.type,
+    activities: tripActivities(data) as Activity[],
     season: data.season,
     nights: data.nights,
     packed: items.filter((i) => i.packed).length,

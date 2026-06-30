@@ -17,7 +17,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { newId } from "@/lib/gear-library"
-import { PEOPLE, SECTIONS, type ChecklistItem, type Person, type Section, type Trip } from "@/lib/types"
+import { PEOPLE, SECTIONS, tripActivities, type ChecklistItem, type Person, type Section, type Trip } from "@/lib/types"
 
 type Props = {
   trip: Trip
@@ -59,7 +59,6 @@ export function ChecklistView({
   onShare,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [adding, setAdding] = useState(false)
 
   // Per-device focus: "Everyone" or a specific person. Remembered across trips
   // so Tommy lands on his list and Danielle on hers.
@@ -116,7 +115,7 @@ export function ChecklistView({
           <div className="min-w-0">
             <h2 className="truncate text-balance text-xl font-semibold leading-tight">{trip.name}</h2>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-              <span>{trip.type}</span>
+              <span>{tripActivities(trip).join(", ")}</span>
               <Dot />
               <span>{trip.season}</span>
               <Dot />
@@ -261,24 +260,9 @@ export function ChecklistView({
           onToggleItem={onToggleItem}
           onRemoveItem={onRemoveItem}
           onSetOwner={onSetOwner}
+          onAddItem={onAddItem}
         />
       ))}
-
-      {/* Add custom item */}
-      {adding ? (
-        <AddItemForm
-          onCancel={() => setAdding(false)}
-          onAdd={(item) => {
-            onAddItem(item)
-            setAdding(false)
-          }}
-        />
-      ) : (
-        <Button variant="outline" className="h-11 rounded-lg" onClick={() => setAdding(true)}>
-          <Plus className="size-4" />
-          Add custom item
-        </Button>
-      )}
     </div>
   )
 }
@@ -332,6 +316,7 @@ function ChecklistSection({
   onToggleItem,
   onRemoveItem,
   onSetOwner,
+  onAddItem,
 }: {
   section: Section
   hint: string
@@ -339,7 +324,9 @@ function ChecklistSection({
   onToggleItem: (id: string) => void
   onRemoveItem: (id: string) => void
   onSetOwner: (id: string, owner: string | undefined, section: Section) => void
+  onAddItem: (item: ChecklistItem) => void
 }) {
+  const [adding, setAdding] = useState(false)
   const packed = items.filter((i) => i.packed).length
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -363,6 +350,27 @@ function ChecklistSection({
           />
         ))}
       </ul>
+      {adding ? (
+        <div className="border-t border-border p-3">
+          <AddItemForm
+            defaultSection={section}
+            onCancel={() => setAdding(false)}
+            onAdd={(item) => {
+              onAddItem(item)
+              setAdding(false)
+            }}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="flex w-full items-center gap-1.5 border-t border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <Plus className="size-4" />
+          Add item
+        </button>
+      )}
     </section>
   )
 }
@@ -483,13 +491,15 @@ function ItemRow({
 function AddItemForm({
   onAdd,
   onCancel,
+  defaultSection = "Shared",
 }: {
   onAdd: (item: ChecklistItem) => void
   onCancel: () => void
+  defaultSection?: Section
 }) {
   const [name, setName] = useState("")
   const [quantity, setQuantity] = useState("1")
-  const [section, setSection] = useState<Section>("Shared")
+  const [section, setSection] = useState<Section>(defaultSection)
   const [owner, setOwner] = useState<string>("")
 
   function submit(e: React.FormEvent) {
@@ -508,8 +518,7 @@ function AddItemForm({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
-      <h3 className="text-base font-semibold">Add custom item</h3>
+    <form onSubmit={submit} className="flex flex-col gap-3">
       <input
         autoFocus
         value={name}

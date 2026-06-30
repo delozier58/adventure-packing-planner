@@ -5,16 +5,16 @@ import { Compass, Loader2, Minus, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { generateChecklist, newId } from "@/lib/gear-library"
 import {
+  ACTIVITIES,
   emptyWeather,
   PEOPLE,
   SEASONS,
-  TRIP_TYPES,
   WEATHER_KEYS,
   WEATHER_LABELS,
+  type Activity,
   type Person,
   type Season,
   type Trip,
-  type TripType,
   type Weather,
 } from "@/lib/types"
 
@@ -26,7 +26,7 @@ type Props = {
 
 export function TripSetup({ onCreate, onCancel, submitting }: Props) {
   const [name, setName] = useState("")
-  const [type, setType] = useState<TripType>("Backpacking")
+  const [activities, setActivities] = useState<Activity[]>(["Backpacking"])
   const [season, setSeason] = useState<Season>("Summer")
   const [nights, setNights] = useState(2)
   const [people, setPeople] = useState<Person[]>(["Danielle", "Tommy"])
@@ -36,14 +36,18 @@ export function TripSetup({ onCreate, onCancel, submitting }: Props) {
     setPeople((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]))
   }
 
+  function toggleActivity(a: Activity) {
+    setActivities((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]))
+  }
+
   function toggleWeather(key: keyof Weather) {
     setWeather((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const tripName = name.trim() || `${type} Trip`
-    const base = { type, season, nights, people, weather }
+    const tripName = name.trim() || `${activities[0] ?? "New"} Trip`
+    const base = { activities, season, nights, people, weather }
     const trip: Trip = {
       id: newId(),
       name: tripName,
@@ -77,27 +81,50 @@ export function TripSetup({ onCreate, onCancel, submitting }: Props) {
         />
       </Field>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        {/* Trip type */}
-        <Field label="Trip type" htmlFor="trip-type">
-          <Select
-            id="trip-type"
-            value={type}
-            onChange={(v) => setType(v as TripType)}
-            options={TRIP_TYPES as readonly string[]}
-          />
-        </Field>
+      {/* Activities (multi-select) */}
+      <Field label="Activities">
+        <p className="-mt-1 text-xs text-muted-foreground">Pick all that apply — mix outdoor and city time.</p>
+        <div className="flex flex-wrap gap-2">
+          {ACTIVITIES.map((a) => {
+            const active = activities.includes(a)
+            return (
+              <button
+                key={a}
+                type="button"
+                onClick={() => toggleActivity(a)}
+                aria-pressed={active}
+                className={[
+                  "flex h-11 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-card text-foreground hover:bg-muted",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "flex size-5 items-center justify-center rounded-md border text-xs",
+                    active ? "border-primary-foreground/60 bg-primary-foreground/20" : "border-border",
+                  ].join(" ")}
+                  aria-hidden="true"
+                >
+                  {active ? "✓" : ""}
+                </span>
+                {a}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
 
-        {/* Season */}
-        <Field label="Season" htmlFor="trip-season">
-          <Select
-            id="trip-season"
-            value={season}
-            onChange={(v) => setSeason(v as Season)}
-            options={SEASONS as readonly string[]}
-          />
-        </Field>
-      </div>
+      {/* Season */}
+      <Field label="Season" htmlFor="trip-season">
+        <Select
+          id="trip-season"
+          value={season}
+          onChange={(v) => setSeason(v as Season)}
+          options={SEASONS as readonly string[]}
+        />
+      </Field>
 
       {/* Nights */}
       <Field label="Number of nights">
@@ -208,7 +235,7 @@ export function TripSetup({ onCreate, onCancel, submitting }: Props) {
             Cancel
           </Button>
         ) : null}
-        <Button type="submit" disabled={submitting} className="h-11 flex-1 rounded-lg text-base">
+        <Button type="submit" disabled={submitting || activities.length === 0} className="h-11 flex-1 rounded-lg text-base">
           {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
           {submitting ? "Creating…" : "Generate packing list"}
         </Button>
