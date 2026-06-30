@@ -15,6 +15,8 @@ type GearItem = {
   requiresAnyWeather?: WeatherKey[]
   // Default owner for shared items (when that person is on the trip).
   defaultOwner?: Person
+  // Personal item that belongs to one specific person only (not duplicated per person).
+  onlyPerson?: Person
   notes?: string
   // Quantity controls.
   qty?: number
@@ -83,6 +85,7 @@ const GEAR: GearItem[] = [
   { id: "p-water-bottles", name: "Water bottles / reservoir", category: "personal", qty: 1 },
   { id: "p-toiletries", name: "Personal toiletries kit", category: "personal", qty: 1 },
   { id: "p-meds", name: "Personal medications", category: "personal", qty: 1 },
+  { id: "p-diabetes-tommy", name: "Diabetes supplies", category: "personal", onlyPerson: "Tommy", qty: 1, notes: "Insulin, glucose meter, test strips, snacks, backup pump supplies" },
   { id: "p-bug-headnet", name: "Bug head net", category: "personal", requiresAnyWeather: ["buggy"] },
   { id: "p-passport", name: "Passport", category: "personal", requiresAnyWeather: ["international"] },
 
@@ -161,7 +164,11 @@ export function generateChecklist(
 
     if (gear.category === "personal") {
       // One item per selected person, placed in that person's section.
-      for (const person of people) {
+      // If onlyPerson is set, the item belongs to that one person only.
+      const targets = gear.onlyPerson
+        ? people.filter((p) => p === gear.onlyPerson)
+        : people
+      for (const person of targets) {
         items.push({
           id: newId(),
           name: gear.name,
