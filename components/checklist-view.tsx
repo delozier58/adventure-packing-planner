@@ -3,11 +3,15 @@
 import { useMemo, useState } from "react"
 import {
   Check,
+  Cloud,
+  CloudOff,
   CopyPlus,
+  Loader2,
   MoreVertical,
   Pencil,
   Plus,
   RotateCcw,
+  Share2,
   Trash2,
   X,
 } from "lucide-react"
@@ -25,6 +29,8 @@ type Props = {
   onDuplicate: () => void
   onDelete: () => void
   onNewTrip: () => void
+  syncStatus?: "synced" | "saving" | "error"
+  onShare?: () => void
 }
 
 const SECTION_HINT: Record<Section, string> = {
@@ -45,6 +51,8 @@ export function ChecklistView({
   onDuplicate,
   onDelete,
   onNewTrip,
+  syncStatus,
+  onShare,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [adding, setAdding] = useState(false)
@@ -92,7 +100,19 @@ export function ChecklistView({
             </p>
           </div>
 
-          <div className="relative shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
+            {onShare ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 rounded-lg"
+                onClick={onShare}
+              >
+                <Share2 className="size-4" />
+                Share
+              </Button>
+            ) : null}
+            <div className="relative">
             <Button
               variant="outline"
               size="icon-lg"
@@ -107,6 +127,16 @@ export function ChecklistView({
               <>
                 <div className="fixed inset-0 z-10" aria-hidden="true" onClick={() => setMenuOpen(false)} />
                 <div className="absolute right-0 top-12 z-20 w-52 overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-lg">
+                  {onShare ? (
+                    <MenuItem
+                      icon={<Share2 className="size-4" />}
+                      label="Share trip"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onShare()
+                      }}
+                    />
+                  ) : null}
                   <MenuItem
                     icon={<Plus className="size-4" />}
                     label="Start new trip"
@@ -143,6 +173,7 @@ export function ChecklistView({
                 </div>
               </>
             ) : null}
+            </div>
           </div>
         </div>
 
@@ -152,7 +183,10 @@ export function ChecklistView({
             <span className="font-medium">
               {packed} of {total} packed
             </span>
-            <span className="tabular-nums text-muted-foreground">{pct}%</span>
+            <div className="flex items-center gap-3">
+              {syncStatus ? <SyncBadge status={syncStatus} /> : null}
+              <span className="tabular-nums text-muted-foreground">{pct}%</span>
+            </div>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
@@ -196,6 +230,31 @@ export function ChecklistView({
         </Button>
       )}
     </div>
+  )
+}
+
+function SyncBadge({ status }: { status: "synced" | "saving" | "error" }) {
+  if (status === "saving") {
+    return (
+      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+        Saving
+      </span>
+    )
+  }
+  if (status === "error") {
+    return (
+      <span className="flex items-center gap-1 text-xs text-destructive">
+        <CloudOff className="size-3.5" aria-hidden="true" />
+        Offline
+      </span>
+    )
+  }
+  return (
+    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      <Cloud className="size-3.5" aria-hidden="true" />
+      Synced
+    </span>
   )
 }
 

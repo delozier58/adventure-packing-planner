@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Compass, Minus, Plus } from "lucide-react"
+import { Compass, Loader2, Minus, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { generateChecklist, newId } from "@/lib/gear-library"
 import {
@@ -21,9 +21,10 @@ import {
 type Props = {
   onCreate: (trip: Trip) => void
   onCancel?: () => void
+  submitting?: boolean
 }
 
-export function TripSetup({ onCreate, onCancel }: Props) {
+export function TripSetup({ onCreate, onCancel, submitting }: Props) {
   const [name, setName] = useState("")
   const [type, setType] = useState<TripType>("Backpacking")
   const [season, setSeason] = useState<Season>("Summer")
@@ -203,12 +204,13 @@ export function TripSetup({ onCreate, onCancel }: Props) {
 
       <div className="sticky bottom-0 -mx-4 flex gap-2 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
         {onCancel ? (
-          <Button type="button" variant="outline" onClick={onCancel} className="h-11 flex-1 rounded-lg sm:flex-none">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={submitting} className="h-11 flex-1 rounded-lg sm:flex-none">
             Cancel
           </Button>
         ) : null}
-        <Button type="submit" className="h-11 flex-1 rounded-lg text-base">
-          Generate packing list
+        <Button type="submit" disabled={submitting} className="h-11 flex-1 rounded-lg text-base">
+          {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+          {submitting ? "Creating…" : "Generate packing list"}
         </Button>
       </div>
     </form>

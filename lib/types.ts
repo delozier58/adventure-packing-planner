@@ -44,6 +44,8 @@ export type ChecklistItem = {
 
 export type Trip = {
   id: string
+  /** Short shareable code; also the DB key. */
+  code?: string
   name: string
   type: TripType
   season: Season
@@ -52,6 +54,19 @@ export type Trip = {
   weather: Weather
   items: ChecklistItem[]
   createdAt: number
+  /** Last server-write timestamp (ms), used for sync conflict resolution. */
+  updatedAt?: number
+}
+
+export type TripSummary = {
+  code: string
+  name: string
+  type: TripType
+  season: Season
+  nights: number
+  packed: number
+  total: number
+  updatedAt: number
 }
 
 export function emptyWeather(): Weather {
