@@ -98,6 +98,7 @@ const GEAR: GearItem[] = [
   { id: "s-inreach", name: "Satellite messenger", category: "shared", defaultOwner: "Tommy", tripTypes: ["Backpacking", "Fastpacking", "Bikepacking", "Kayaking"] },
   { id: "s-bear-canister", name: "Bear canister / food bag", category: "shared", defaultOwner: "Danielle", tripTypes: ["Backpacking", "Fastpacking"] },
   { id: "s-powerbank", name: "Power bank + cables", category: "shared", defaultOwner: "Danielle", qty: 1 },
+  { id: "s-walkie-talkie", name: "Walkie talkies", category: "shared", defaultOwner: "Tommy", qty: 2 },
   { id: "s-bug-spray", name: "Bug spray", category: "shared", defaultOwner: "Danielle", requiresAnyWeather: ["buggy"] },
   { id: "s-sunscreen", name: "Sunscreen", category: "shared", defaultOwner: "Danielle", seasons: ["Summer", "Shoulder Season"] },
   { id: "s-tarp", name: "Extra tarp", category: "shared", defaultOwner: "Tommy", requiresAnyWeather: ["rain"] },
