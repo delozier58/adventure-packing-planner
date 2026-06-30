@@ -53,7 +53,7 @@ const GEAR: GearItem[] = [
     id: "p-trail-runners",
     name: "Trail runners",
     category: "personal",
-    tripTypes: ["Fastpacking", "Day Hike", "Backpacking"],
+    tripTypes: ["Fastpacking", "Backpacking"],
   },
   {
     id: "p-boots",
@@ -83,10 +83,9 @@ const GEAR: GearItem[] = [
 
   // ---- Personal: pack / carry ----
   { id: "p-backpack", name: "Backpack", category: "personal", tripTypes: ["Backpacking", "Hut-to-Hut", "Fastpacking"] },
-  { id: "p-daypack", name: "Daypack", category: "personal", tripTypes: ["Day Hike"] },
   { id: "p-drybag", name: "Personal dry bag", category: "personal", tripTypes: ["Kayaking"] },
   { id: "p-bike-bags", name: "Bikepacking bags", category: "personal", tripTypes: ["Bikepacking"] },
-  { id: "p-trekking-poles", name: "Trekking poles", category: "personal", tripTypes: ["Backpacking", "Hut-to-Hut", "Fastpacking", "Day Hike"] },
+  { id: "p-trekking-poles", name: "Trekking poles", category: "personal", tripTypes: ["Backpacking", "Hut-to-Hut", "Fastpacking"] },
   { id: "p-headlamp", name: "Headlamp", category: "personal", qty: 1 },
   { id: "p-water-bottles", name: "Water bottles / reservoir", category: "personal", qty: 1 },
   { id: "p-toiletries", name: "Personal toiletries kit", category: "personal", qty: 1 },
@@ -96,11 +95,17 @@ const GEAR: GearItem[] = [
   { id: "p-bug-headnet", name: "Bug head net", category: "personal", requiresAnyWeather: ["buggy"] },
   { id: "p-passport", name: "Passport", category: "personal", requiresAnyWeather: ["international"] },
 
+  // ---- Personal: city / town crossover ----
+  { id: "p-casual-outfit", name: "Casual / town outfit", category: "personal", requiresAnyWeather: ["city"], qty: 1, notes: "For meals out & walking around town" },
+  { id: "p-nicer-outfit", name: "Nicer outfit", category: "personal", requiresAnyWeather: ["city"], qty: 1, notes: "Dinner / going out" },
+  { id: "p-walking-shoes", name: "Casual walking shoes", category: "personal", requiresAnyWeather: ["city"], qty: 1 },
+  { id: "p-day-bag", name: "Day bag / crossbody", category: "personal", requiresAnyWeather: ["city"], qty: 1, notes: "Compact bag for exploring town" },
+
   // ---- Shared gear ----
   { id: "s-tent", name: "Tent", category: "shared", defaultOwner: "Tommy", tripTypes: ["Backpacking", "Car Camping", "Bikepacking", "Fastpacking", "Kayaking"] },
   { id: "s-stove", name: "Stove + fuel", category: "shared", defaultOwner: "Tommy", tripTypes: ["Backpacking", "Car Camping", "Bikepacking", "Kayaking", "Hut-to-Hut"] },
   { id: "s-cookset", name: "Cook pot + utensils", category: "shared", defaultOwner: "Danielle", tripTypes: ["Backpacking", "Car Camping", "Bikepacking", "Kayaking"] },
-  { id: "s-water-filter", name: "Water filter", category: "shared", defaultOwner: "Danielle", tripTypes: ["Backpacking", "Bikepacking", "Fastpacking", "Kayaking", "Day Hike"] },
+  { id: "s-water-filter", name: "Water filter", category: "shared", defaultOwner: "Danielle", tripTypes: ["Backpacking", "Bikepacking", "Fastpacking", "Kayaking"] },
   { id: "s-firstaid", name: "First aid kit", category: "shared", defaultOwner: "Danielle", qty: 1 },
   { id: "s-repair", name: "Repair kit + duct tape", category: "shared", defaultOwner: "Tommy", qty: 1 },
   { id: "s-bike-repair", name: "Bike tools + spare tube", category: "shared", defaultOwner: "Tommy", tripTypes: ["Bikepacking"] },
@@ -108,6 +113,7 @@ const GEAR: GearItem[] = [
   { id: "s-inreach", name: "Satellite messenger", category: "shared", defaultOwner: "Tommy", tripTypes: ["Backpacking", "Fastpacking", "Bikepacking", "Kayaking"] },
   { id: "s-bear-canister", name: "Bear canister / food bag", category: "shared", defaultOwner: "Danielle", tripTypes: ["Backpacking", "Fastpacking"] },
   { id: "s-powerbank", name: "Power bank + cables", category: "shared", defaultOwner: "Danielle", qty: 1 },
+  { id: "s-travel-adapter", name: "Travel power adapter", category: "shared", defaultOwner: "Danielle", requiresAnyWeather: ["international"], qty: 1 },
   { id: "s-walkie-talkie", name: "Walkie talkies", category: "shared", defaultOwner: "Tommy", qty: 2 },
   { id: "s-bug-spray", name: "Bug spray", category: "shared", defaultOwner: "Danielle", requiresAnyWeather: ["buggy"] },
   { id: "s-sunscreen", name: "Sunscreen", category: "shared", defaultOwner: "Danielle", seasons: ["Summer", "Shoulder Season"] },
@@ -129,10 +135,12 @@ const GEAR: GearItem[] = [
   { id: "b-weather", name: "Check forecast + conditions", category: "before-leaving", qty: 1 },
   { id: "b-permit", name: "Confirm permits / reservations", category: "before-leaving", qty: 1, tripTypes: ["Backpacking", "Hut-to-Hut", "Car Camping"] },
   { id: "b-itinerary", name: "Share itinerary with contact", category: "before-leaving", qty: 1 },
-  { id: "b-fuel-up", name: "Fuel up vehicle", category: "before-leaving", qty: 1, tripTypes: ["Car Camping", "Backpacking", "Bikepacking", "Day Hike", "Fastpacking", "Kayaking"] },
+  { id: "b-fuel-up", name: "Fuel up vehicle", category: "before-leaving", qty: 1, tripTypes: ["Car Camping", "Backpacking", "Bikepacking", "Fastpacking", "Kayaking"] },
   { id: "b-trash", name: "Empty fridge / trash", category: "before-leaving", qty: 1 },
   { id: "b-docs", name: "Pack passports + travel docs", category: "before-leaving", qty: 1, requiresAnyWeather: ["international"] },
   { id: "b-currency", name: "Get local currency / cards", category: "before-leaving", qty: 1, requiresAnyWeather: ["international"] },
+  { id: "b-lodging", name: "Confirm lodging / hotel bookings", category: "before-leaving", qty: 1, requiresAnyWeather: ["city"] },
+  { id: "b-offline-maps", name: "Download offline maps & transit apps", category: "before-leaving", qty: 1, requiresAnyWeather: ["city"] },
   { id: "b-shuttle", name: "Arrange shuttle / put-in logistics", category: "before-leaving", qty: 1, tripTypes: ["Kayaking", "Backpacking"] },
 ]
 

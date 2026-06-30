@@ -5,7 +5,6 @@ export const TRIP_TYPES = [
   "Car Camping",
   "Bikepacking",
   "Fastpacking",
-  "Day Hike",
 ] as const
 
 export type TripType = (typeof TRIP_TYPES)[number]
@@ -16,13 +15,14 @@ export type Season = (typeof SEASONS)[number]
 export const PEOPLE = ["Danielle", "Tommy"] as const
 export type Person = (typeof PEOPLE)[number]
 
-export const WEATHER_KEYS = ["rain", "cold", "buggy", "international"] as const
+export const WEATHER_KEYS = ["rain", "cold", "buggy", "city", "international"] as const
 export type WeatherKey = (typeof WEATHER_KEYS)[number]
 
 export const WEATHER_LABELS: Record<WeatherKey, string> = {
   rain: "Rain expected",
   cold: "Cold nights",
   buggy: "Buggy",
+  city: "City / town time",
   international: "International travel",
 }
 
@@ -70,5 +70,5 @@ export type TripSummary = {
 }
 
 export function emptyWeather(): Weather {
-  return { rain: false, cold: false, buggy: false, international: false }
+  return { rain: false, cold: false, buggy: false, city: false, international: false }
 }
