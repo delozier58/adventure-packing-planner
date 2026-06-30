@@ -421,8 +421,8 @@ function ItemRow({
 
         {item.notes ? <p className="mt-0.5 text-xs text-muted-foreground">{item.notes}</p> : null}
 
-        {/* Owner control */}
-        {editingOwner ? (
+        {/* Owner control — only for communal sections; personal items belong to their section's person */}
+        {isPersonSection ? null : editingOwner ? (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {PEOPLE.map((p) => (
               <button
@@ -437,18 +437,16 @@ function ItemRow({
                 {p}
               </button>
             ))}
-            {!isPersonSection ? (
-              <button
-                type="button"
-                onClick={() => chooseOwner(undefined)}
-                className={[
-                  "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-                  !item.owner ? "border-primary bg-primary text-primary-foreground" : "border-input hover:bg-muted",
-                ].join(" ")}
-              >
-                Unassigned
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onClick={() => chooseOwner(undefined)}
+              className={[
+                "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                !item.owner ? "border-primary bg-primary text-primary-foreground" : "border-input hover:bg-muted",
+              ].join(" ")}
+            >
+              Unassigned
+            </button>
             <button
               type="button"
               onClick={() => setEditingOwner(false)}
@@ -465,7 +463,7 @@ function ItemRow({
             className="mt-1 inline-flex items-center gap-1 rounded-md text-xs text-muted-foreground hover:text-foreground"
           >
             <Pencil className="size-3" />
-            {isPersonSection ? "Move to person" : item.owner ? `Owner: ${item.owner}` : "Assign owner"}
+            {item.owner ? `Owner: ${item.owner}` : "Assign owner"}
           </button>
         )}
       </div>
