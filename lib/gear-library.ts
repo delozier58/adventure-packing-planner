@@ -84,6 +84,7 @@ const GEAR: GearItem[] = [
   { id: "p-headlamp", name: "Headlamp", category: "personal", qty: 1 },
   { id: "p-water-bottles", name: "Water bottles / reservoir", category: "personal", qty: 1 },
   { id: "p-toiletries", name: "Personal toiletries kit", category: "personal", qty: 1 },
+  { id: "p-glasses-contacts", name: "Glasses & contacts", category: "personal", qty: 1, notes: "Glasses, contacts, lens solution, case" },
   { id: "p-meds", name: "Personal medications", category: "personal", qty: 1 },
   { id: "p-diabetes-tommy", name: "Diabetes supplies", category: "personal", onlyPerson: "Tommy", qty: 1, notes: "Insulin, glucose meter, test strips, snacks, backup pump supplies" },
   { id: "p-bug-headnet", name: "Bug head net", category: "personal", requiresAnyWeather: ["buggy"] },
