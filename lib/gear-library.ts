@@ -29,10 +29,16 @@ type GearItem = {
 // ---------------------------------------------------------------------------
 const GEAR: GearItem[] = [
   // ---- Personal: worn / clothing ----
+  { id: "p-tshirts", name: "T-shirts", category: "personal", perNightPlusOne: true, notes: "1 per day" },
+  { id: "p-sun-shirt", name: "Sun shirt / hoody", category: "personal", qty: 1 },
+  { id: "p-shorts", name: "Shorts", category: "personal", qty: 1 },
+  { id: "p-pants", name: "Hiking pants", category: "personal", qty: 1 },
+  { id: "p-sleep-clothes", name: "Sleep clothes", category: "personal", qty: 1, notes: "Dedicated dry set for the tent" },
+  { id: "p-car-outfit", name: "Car / travel outfit", category: "personal", qty: 1, notes: "Clean clothes for the drive home" },
   { id: "p-base-layers", name: "Base layer top + bottom", category: "personal", seasons: ["Shoulder Season", "Winter"] },
   { id: "p-insulation", name: "Insulated jacket", category: "personal", seasons: ["Shoulder Season", "Winter"] },
-  { id: "p-puffy", name: "Down puffy", category: "personal", requiresAnyWeather: ["cold"] },
-  { id: "p-rain-jacket", name: "Rain shell", category: "personal", requiresAnyWeather: ["rain"] },
+  { id: "p-puffy", name: "Down puffy", category: "personal", qty: 1 },
+  { id: "p-rain-jacket", name: "Waterproof layer (rain shell)", category: "personal", qty: 1 },
   { id: "p-rain-pants", name: "Rain pants", category: "personal", requiresAnyWeather: ["rain"] },
   { id: "p-socks", name: "Hiking socks", category: "personal", perNightPlusOne: true, notes: "1 pair per day" },
   { id: "p-underwear", name: "Underwear", category: "personal", perNightPlusOne: true },
