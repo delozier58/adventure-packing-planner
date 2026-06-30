@@ -6,7 +6,7 @@ import { Compass, Loader2, Mountain } from "lucide-react"
 import { TripSetup } from "@/components/trip-setup"
 import { createTrip, getTripSummaries } from "@/app/actions/trips"
 import { getRecentCodes, rememberCode } from "@/lib/recent-trips"
-import type { Trip, TripSummary } from "@/lib/types"
+import { tripActivities, type Trip, type TripSummary } from "@/lib/types"
 
 export default function Page() {
   const router = useRouter()
@@ -130,7 +130,7 @@ function SavedTrips({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{trip.name}</span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {trip.type} · {trip.season} · {trip.nights} {trip.nights === 1 ? "night" : "nights"}
+                  {tripActivities(trip).join(", ")} · {trip.season} · {trip.nights} {trip.nights === 1 ? "night" : "nights"}
                 </span>
               </span>
               <span className="shrink-0 text-xs tabular-nums text-muted-foreground">

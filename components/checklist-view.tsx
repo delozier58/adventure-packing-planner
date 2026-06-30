@@ -17,7 +17,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { newId } from "@/lib/gear-library"
-import { PEOPLE, SECTIONS, type ChecklistItem, type Person, type Section, type Trip } from "@/lib/types"
+import { PEOPLE, SECTIONS, tripActivities, type ChecklistItem, type Person, type Section, type Trip } from "@/lib/types"
 
 type Props = {
   trip: Trip
@@ -115,7 +115,7 @@ export function ChecklistView({
           <div className="min-w-0">
             <h2 className="truncate text-balance text-xl font-semibold leading-tight">{trip.name}</h2>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-              <span>{trip.type}</span>
+              <span>{tripActivities(trip).join(", ")}</span>
               <Dot />
               <span>{trip.season}</span>
               <Dot />
