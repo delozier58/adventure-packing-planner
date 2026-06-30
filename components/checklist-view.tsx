@@ -465,7 +465,7 @@ function ItemRow({
             className="mt-1 inline-flex items-center gap-1 rounded-md text-xs text-muted-foreground hover:text-foreground"
           >
             <Pencil className="size-3" />
-            {item.owner ? `Owner: ${item.owner}` : "Assign owner"}
+            {isPersonSection ? "Move to person" : item.owner ? `Owner: ${item.owner}` : "Assign owner"}
           </button>
         )}
       </div>
