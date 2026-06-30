@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Check,
   Cloud,
@@ -17,7 +17,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { newId } from "@/lib/gear-library"
-import { PEOPLE, SECTIONS, type ChecklistItem, type Section, type Trip } from "@/lib/types"
+import { PEOPLE, SECTIONS, type ChecklistItem, type Person, type Section, type Trip } from "@/lib/types"
 
 type Props = {
   trip: Trip
@@ -41,6 +41,10 @@ const SECTION_HINT: Record<Section, string> = {
   "Before Leaving": "Last-minute tasks",
 }
 
+type Focus = "Everyone" | Person
+
+const FOCUS_STORAGE_KEY = "adventure-packing:focus"
+
 export function ChecklistView({
   trip,
   onToggleItem,
@@ -57,6 +61,18 @@ export function ChecklistView({
   const [menuOpen, setMenuOpen] = useState(false)
   const [adding, setAdding] = useState(false)
 
+  // Per-device focus: "Everyone" or a specific person. Remembered across trips
+  // so Tommy lands on his list and Danielle on hers.
+  const [focus, setFocus] = useState<Focus>("Everyone")
+  useEffect(() => {
+    const saved = localStorage.getItem(FOCUS_STORAGE_KEY)
+    if (saved) setFocus(saved as Focus)
+  }, [])
+  const updateFocus = (next: Focus) => {
+    setFocus(next)
+    localStorage.setItem(FOCUS_STORAGE_KEY, next)
+  }
+
   const grouped = useMemo(() => {
     const map: Record<Section, ChecklistItem[]> = {
       Danielle: [],
@@ -69,12 +85,28 @@ export function ChecklistView({
     return map
   }, [trip.items])
 
-  const total = trip.items.length
-  const packed = trip.items.filter((i) => i.packed).length
+  // People actually on this trip, in case the saved focus is someone who isn't.
+  const activeFocus: Focus =
+    focus !== "Everyone" && !trip.people.includes(focus) ? "Everyone" : focus
+
+  // When focused on a person, hide the OTHER person's personal section but keep
+  // communal sections (Shared, Food, Before Leaving) visible.
+  const isPersonSection = (s: Section) => (PEOPLE as readonly string[]).includes(s)
+  const visibleSections = SECTIONS.filter((s) => {
+    if (grouped[s].length === 0) return false
+    if (activeFocus === "Everyone") return true
+    if (isPersonSection(s)) return s === activeFocus
+    return true
+  })
+
+  // Progress reflects what's currently visible so the count matches the view.
+  const visibleItems = visibleSections.flatMap((s) => grouped[s])
+  const total = visibleItems.length
+  const packed = visibleItems.filter((i) => i.packed).length
   const pct = total === 0 ? 0 : Math.round((packed / total) * 100)
 
-  // Only show sections that have items (e.g. hide a person not on the trip).
-  const visibleSections = SECTIONS.filter((s) => grouped[s].length > 0)
+  // Only show the filter when more than one person is on the trip.
+  const showFilter = trip.people.length > 1
 
   return (
     <div className="flex flex-col gap-5">
@@ -201,6 +233,24 @@ export function ChecklistView({
         </div>
       </header>
 
+      {/* Person focus filter */}
+      {showFilter ? (
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Show items for</span>
+          <div className="flex flex-wrap gap-2">
+            <FocusChip label="Everyone" active={activeFocus === "Everyone"} onClick={() => updateFocus("Everyone")} />
+            {trip.people.map((person) => (
+              <FocusChip
+                key={person}
+                label={person}
+                active={activeFocus === person}
+                onClick={() => updateFocus(person)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {/* Sections */}
       {visibleSections.map((section) => (
         <ChecklistSection
@@ -230,6 +280,23 @@ export function ChecklistView({
         </Button>
       )}
     </div>
+  )
+}
+
+function FocusChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={
+        active
+          ? "rounded-full border border-primary bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground"
+          : "rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+      }
+    >
+      {label}
+    </button>
   )
 }
 
