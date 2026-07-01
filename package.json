@@ -2,6 +2,9 @@
   "name": "adventure-packing-planner",
   "version": "0.1.0",
   "private": true,
+   "description": "A collaborative packing planner for outdoor adventures.",
+  "author": "Danielle Lozier",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
