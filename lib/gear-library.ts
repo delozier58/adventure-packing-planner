@@ -86,6 +86,7 @@ const GEAR: GearItem[] = [
   { id: "p-rain-pants", name: "Rain pants", category: "personal", requiresAnyWeather: ["rain"] },
   { id: "p-socks", name: "Hiking socks", category: "personal", perNightPlusOne: true, notes: "1 pair per day" },
   { id: "p-underwear", name: "Underwear", category: "personal", perNightPlusOne: true },
+  { id: "p-sports-bras", name: "Sports bras", category: "personal", onlyPerson: "Danielle", perNightPlusOne: true },
   { id: "p-sun-hat", name: "Sun hat", category: "personal", seasons: ["Summer", "Shoulder Season"] },
   { id: "p-warm-hat", name: "Beanie", category: "personal", requiresAnyWeather: ["cold"] },
   { id: "p-gloves", name: "Gloves", category: "personal", seasons: ["Winter"] },
