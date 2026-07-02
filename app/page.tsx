@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Compass, Loader2, Mountain, SlidersHorizontal } from "lucide-react"
+import { Compass, Loader2, Mountain, SlidersHorizontal, Trash2 } from "lucide-react"
 import { TripSetup } from "@/components/trip-setup"
-import { createTrip, getAllTripSummaries } from "@/app/actions/trips"
+import { createTrip, deleteTrip, getAllTripSummaries } from "@/app/actions/trips"
 import { getDefaults } from "@/app/actions/defaults"
-import { rememberCode } from "@/lib/recent-trips"
+import { forgetCode, rememberCode } from "@/lib/recent-trips"
 import { emptyDefaults, type ListDefaults } from "@/lib/gear-library"
 import { tripActivities, type Trip, type TripSummary } from "@/lib/types"
 
@@ -48,6 +48,18 @@ export default function Page() {
     }
   }
 
+  async function handleDelete(code: string) {
+    // Optimistically remove from the list, then delete server-side.
+    setSummaries((prev) => (prev ? prev.filter((t) => t.code !== code) : prev))
+    forgetCode(code)
+    try {
+      await deleteTrip(code)
+    } catch {
+      // If it fails, reload to restore the true state.
+      loadTrips()
+    }
+  }
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 pb-10">
       <div className="sticky top-0 z-30 -mx-4 mb-2 flex items-center justify-between border-b border-border bg-background/90 px-4 py-3 backdrop-blur">
@@ -80,7 +92,11 @@ export default function Page() {
             Loading your trips…
           </div>
         ) : summaries.length > 0 ? (
-          <SavedTrips trips={summaries} onOpen={(code) => router.push(`/t/${code}`)} />
+          <SavedTrips
+            trips={summaries}
+            onOpen={(code) => router.push(`/t/${code}`)}
+            onDelete={handleDelete}
+          />
         ) : (
           <p className="px-1 py-2 text-sm text-muted-foreground">
             No trips yet. Plan a new trip above to get started.
@@ -124,37 +140,82 @@ function OpenByCode() {
 function SavedTrips({
   trips,
   onOpen,
+  onDelete,
 }: {
   trips: TripSummary[]
   onOpen: (code: string) => void
+  onDelete: (code: string) => void
 }) {
   return (
     <section className="flex flex-col gap-2">
       <h2 className="px-1 text-sm font-semibold text-muted-foreground">Your trips</h2>
       <ul className="flex flex-col gap-2">
         {trips.map((trip) => (
-          <li key={trip.code}>
-            <button
-              type="button"
-              onClick={() => onOpen(trip.code)}
-              className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:bg-muted"
-            >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                <Compass className="size-5" aria-hidden="true" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{trip.name}</span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {tripActivities(trip).join(", ")} · {trip.season} · {trip.nights} {trip.nights === 1 ? "night" : "nights"}
-                </span>
-              </span>
-              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                {trip.packed}/{trip.total}
-              </span>
-            </button>
-          </li>
+          <SavedTripRow key={trip.code} trip={trip} onOpen={onOpen} onDelete={onDelete} />
         ))}
       </ul>
     </section>
+  )
+}
+
+function SavedTripRow({
+  trip,
+  onOpen,
+  onDelete,
+}: {
+  trip: TripSummary
+  onOpen: (code: string) => void
+  onDelete: (code: string) => void
+}) {
+  const [confirming, setConfirming] = useState(false)
+
+  return (
+    <li className="flex items-stretch gap-2">
+      <button
+        type="button"
+        onClick={() => onOpen(trip.code)}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:bg-muted"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+          <Compass className="size-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{trip.name}</span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {tripActivities(trip).join(", ")} · {trip.season} · {trip.nights} {trip.nights === 1 ? "night" : "nights"}
+          </span>
+        </span>
+        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+          {trip.packed}/{trip.total}
+        </span>
+      </button>
+      {confirming ? (
+        <div className="flex shrink-0 flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => onDelete(trip.code)}
+            className="flex flex-1 items-center rounded-lg bg-destructive px-3 text-xs font-medium text-destructive-foreground transition-colors hover:opacity-90"
+          >
+            Delete
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirming(false)}
+            className="flex flex-1 items-center rounded-lg border border-border px-3 text-xs font-medium transition-colors hover:bg-muted"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          aria-label={`Delete ${trip.name}`}
+          className="flex shrink-0 items-center justify-center rounded-xl border border-border bg-card px-3 text-muted-foreground transition-colors hover:bg-destructive hover:text-destructive-foreground"
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+        </button>
+      )}
+    </li>
   )
 }
