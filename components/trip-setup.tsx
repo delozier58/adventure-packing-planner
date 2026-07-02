@@ -9,7 +9,6 @@ import {
   ACTIVITIES,
   emptyWeather,
   PEOPLE,
-  SEASONS,
   type Activity,
   type Person,
   type Season,
@@ -27,6 +26,19 @@ function nightsBetween(start: string, end: string): number {
   return d > 0 ? d : 0
 }
 
+/**
+ * Derive the trip season from a start date (Northern Hemisphere).
+ * Jun–Aug = Summer, Dec–Feb = Winter, everything else = Shoulder Season.
+ */
+function seasonFromDate(start: string): Season {
+  if (!start) return "Summer"
+  const month = new Date(`${start}T00:00:00`).getMonth() // 0-11
+  if (Number.isNaN(month)) return "Summer"
+  if (month >= 5 && month <= 7) return "Summer"
+  if (month === 11 || month <= 1) return "Winter"
+  return "Shoulder Season"
+}
+
 type Props = {
   onCreate: (trip: Trip) => void
   onCancel?: () => void
@@ -37,7 +49,6 @@ type Props = {
 export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
   const [name, setName] = useState("")
   const [activities, setActivities] = useState<Activity[]>(["Backpacking"])
-  const [season, setSeason] = useState<Season>("Summer")
   const [people, setPeople] = useState<Person[]>(["Danielle", "Tommy"])
   const [weather, setWeather] = useState<Weather>(emptyWeather())
 
@@ -54,6 +65,8 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
   const derivedNights = hasDates ? nightsBetween(startDate, endDate) : 0
   // Nights come from the date range; fall back to 2 if dates aren't set yet.
   const effectiveNights = hasDates ? derivedNights : 2
+  // Season is inferred from the start date (defaults to Summer until a date is set).
+  const season = seasonFromDate(startDate)
 
   function addDestination() {
     const value = destInput.trim()
@@ -185,16 +198,6 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         </div>
       </Field>
 
-      {/* Season */}
-      <Field label="Season" htmlFor="trip-season">
-        <Select
-          id="trip-season"
-          value={season}
-          onChange={(v) => setSeason(v as Season)}
-          options={SEASONS as readonly string[]}
-        />
-      </Field>
-
       {/* Dates */}
       <Field label="Trip dates">
         <p className="-mt-1 text-xs text-muted-foreground">
@@ -224,7 +227,7 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         </div>
         {hasDates ? (
           <p className="text-sm text-muted-foreground">
-            {derivedNights} {derivedNights === 1 ? "night" : "nights"} — used to size your list.
+            {derivedNights} {derivedNights === 1 ? "night" : "nights"} · {season} — used to size your list.
           </p>
         ) : null}
       </Field>
@@ -433,45 +436,6 @@ function Field({
         {label}
       </label>
       {children}
-    </div>
-  )
-}
-
-function Select({
-  id,
-  value,
-  onChange,
-  options,
-}: {
-  id?: string
-  value: string
-  onChange: (v: string) => void
-  options: readonly string[]
-}) {
-  return (
-    <div className="relative">
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-full appearance-none rounded-lg border border-input bg-card px-3 pr-9 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-      >
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-      <svg
-        className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        aria-hidden="true"
-      >
-        <path d="m6 9 6 6 6-6" />
-      </svg>
     </div>
   )
 }
