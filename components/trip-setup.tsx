@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CloudSun, Compass, Loader2, MapPin, Minus, Mountain, Plus, X } from "lucide-react"
+import { CloudSun, Compass, Loader2, MapPin, Mountain, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { generateChecklist, newId, type ListDefaults } from "@/lib/gear-library"
 import { checkWeather, type WeatherResult } from "@/app/actions/weather"
@@ -10,8 +10,6 @@ import {
   emptyWeather,
   PEOPLE,
   SEASONS,
-  WEATHER_KEYS,
-  WEATHER_LABELS,
   type Activity,
   type Person,
   type Season,
@@ -40,7 +38,6 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
   const [name, setName] = useState("")
   const [activities, setActivities] = useState<Activity[]>(["Backpacking"])
   const [season, setSeason] = useState<Season>("Summer")
-  const [nights, setNights] = useState(2)
   const [people, setPeople] = useState<Person[]>(["Danielle", "Tommy"])
   const [weather, setWeather] = useState<Weather>(emptyWeather())
 
@@ -55,7 +52,8 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
 
   const hasDates = Boolean(startDate && endDate)
   const derivedNights = hasDates ? nightsBetween(startDate, endDate) : 0
-  const effectiveNights = hasDates ? derivedNights : nights
+  // Nights come from the date range; fall back to 2 if dates aren't set yet.
+  const effectiveNights = hasDates ? derivedNights : 2
 
   function addDestination() {
     const value = destInput.trim()
@@ -80,12 +78,17 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         Number.isFinite(elevNum) ? elevNum : null,
       )
       setWeatherResult(result)
-      // Auto-flip the condition toggles that drive gear selection.
-      setWeather((prev) => ({ ...prev, rain: result.combined.rain, cold: result.combined.cold }))
+      // Auto-set the conditions that drive gear selection from the lookup.
+      setWeather((prev) => ({
+        ...prev,
+        rain: result.combined.rain,
+        cold: result.combined.cold,
+        international: result.combined.international,
+      }))
     } catch {
       setWeatherResult({
         destinations: [],
-        combined: { rain: false, cold: false },
+        combined: { rain: false, cold: false, international: false },
         note: "",
         error: "Weather lookup failed. Try again.",
       })
@@ -100,10 +103,6 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
 
   function toggleActivity(a: Activity) {
     setActivities((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]))
-  }
-
-  function toggleWeather(key: keyof Weather) {
-    setWeather((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -230,38 +229,6 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         ) : null}
       </Field>
 
-      {/* Nights (manual fallback when no dates are set) */}
-      {!hasDates ? (
-        <Field label="Number of nights">
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-lg"
-              aria-label="Decrease nights"
-              onClick={() => setNights((n) => Math.max(0, n - 1))}
-              className="size-11 rounded-lg"
-            >
-              <Minus className="size-4" />
-            </Button>
-            <span className="min-w-12 text-center text-lg font-semibold tabular-nums" aria-live="polite">
-              {nights}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-lg"
-              aria-label="Increase nights"
-              onClick={() => setNights((n) => Math.min(60, n + 1))}
-              className="size-11 rounded-lg"
-            >
-              <Plus className="size-4" />
-            </Button>
-            <span className="text-sm text-muted-foreground">{nights === 1 ? "night" : "nights"}</span>
-          </div>
-        </Field>
-      ) : null}
-
       {/* Destinations + weather lookup */}
       <Field label="Destinations">
         <p className="-mt-1 text-xs text-muted-foreground">
@@ -374,17 +341,23 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
                     </li>
                   ))}
                 </ul>
-                {weatherResult.combined.rain || weatherResult.combined.cold ? (
+                {weatherResult.combined.rain ||
+                weatherResult.combined.cold ||
+                weatherResult.combined.international ? (
                   <p className="text-xs text-muted-foreground">
-                    Added gear for{" "}
-                    {[weatherResult.combined.rain ? "rain" : null, weatherResult.combined.cold ? "cold nights" : null]
+                    Adjusted your list for{" "}
+                    {[
+                      weatherResult.combined.rain ? "rain" : null,
+                      weatherResult.combined.cold ? "cold nights" : null,
+                      weatherResult.combined.international ? "international travel" : null,
+                    ]
                       .filter(Boolean)
                       .join(" & ")}
-                    . You can still adjust the conditions below.
+                    .
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    No rain or cold flagged. Adjust conditions below if needed.
+                    No rain, cold, or international conditions flagged.
                   </p>
                 )}
                 {weatherResult.note ? (
@@ -424,45 +397,6 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
                   {active ? "✓" : ""}
                 </span>
                 {p}
-              </button>
-            )
-          })}
-        </div>
-      </Field>
-
-      {/* Weather toggles */}
-      <Field label="Conditions">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {WEATHER_KEYS.map((key) => {
-            const active = weather[key]
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => toggleWeather(key)}
-                aria-pressed={active}
-                className={[
-                  "flex h-11 items-center justify-between rounded-lg border px-4 text-sm font-medium transition-colors",
-                  active
-                    ? "border-accent bg-accent text-accent-foreground"
-                    : "border-input bg-card text-foreground hover:bg-muted",
-                ].join(" ")}
-              >
-                {WEATHER_LABELS[key]}
-                <span
-                  className={[
-                    "ml-2 flex h-5 w-9 items-center rounded-full p-0.5 transition-colors",
-                    active ? "bg-accent-foreground/30" : "bg-muted-foreground/30",
-                  ].join(" ")}
-                  aria-hidden="true"
-                >
-                  <span
-                    className={[
-                      "size-4 rounded-full bg-card transition-transform",
-                      active ? "translate-x-4" : "translate-x-0",
-                    ].join(" ")}
-                  />
-                </span>
               </button>
             )
           })}

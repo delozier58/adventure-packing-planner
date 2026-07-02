@@ -23,15 +23,20 @@ export type DestinationWeather = {
   stationElevationFt: number | null
   /** Degrees F subtracted for the elevation gain to the target camp. */
   elevationAdjustF: number
+  /** ISO country code of the resolved place (lowercase), when known. */
+  countryCode: string | null
   summary: string
 }
 
 export type WeatherResult = {
   destinations: DestinationWeather[]
-  combined: { rain: boolean; cold: boolean }
+  combined: { rain: boolean; cold: boolean; international: boolean }
   note: string
   error?: string
 }
+
+// Home country: anything outside this is treated as international travel.
+const HOME_COUNTRY = "us"
 
 // Thresholds that map raw forecast numbers onto the app's condition toggles.
 const COLD_NIGHT_F = 40 // a night at/below this flips "Cold nights"
@@ -91,7 +96,7 @@ async function search(name: string, count: number): Promise<GeoResult[]> {
 
 async function geocode(
   query: string,
-): Promise<{ name: string; lat: number; lon: number; elevationFt: number | null } | null> {
+): Promise<{ name: string; lat: number; lon: number; elevationFt: number | null; countryCode: string | null } | null> {
   try {
     // The Open-Meteo geocoder matches on a place name only — a "City, State"
     // string won't match. So split off any region hint and search the city,
@@ -126,6 +131,7 @@ async function geocode(
       lat: r.latitude,
       lon: r.longitude,
       elevationFt: typeof r.elevation === "number" ? Math.round(r.elevation * M_TO_FT) : null,
+      countryCode: r.country_code?.toLowerCase() ?? null,
     }
   } catch {
     return null
@@ -212,7 +218,12 @@ export async function checkWeather(
 ): Promise<WeatherResult> {
   const queries = destinations.map((s) => s.trim()).filter(Boolean)
   if (queries.length === 0 || !startDate || !endDate) {
-    return { destinations: [], combined: { rain: false, cold: false }, note: "", error: "Missing destinations or dates." }
+    return {
+      destinations: [],
+      combined: { rain: false, cold: false, international: false },
+      note: "",
+      error: "Missing destinations or dates.",
+    }
   }
   const targetFt = typeof targetElevationFt === "number" && targetElevationFt > 0 ? targetElevationFt : null
 
@@ -232,6 +243,7 @@ export async function checkWeather(
           cold: false,
           stationElevationFt: null,
           elevationAdjustF: 0,
+          countryCode: null,
           summary: "",
         }
         miss.summary = summarize(miss)
@@ -256,6 +268,7 @@ export async function checkWeather(
           cold: false,
           stationElevationFt: geo.elevationFt,
           elevationAdjustF,
+          countryCode: geo.countryCode,
           summary: "No weather data available for those dates.",
         }
         return miss
@@ -285,6 +298,7 @@ export async function checkWeather(
         cold,
         stationElevationFt: geo.elevationFt,
         elevationAdjustF,
+        countryCode: geo.countryCode,
         summary: "",
       }
       d.summary = summarize(d)
@@ -292,16 +306,18 @@ export async function checkWeather(
     }),
   )
 
-  // Combine: if ANY destination is rainy/cold, add that gear.
+  // Combine: if ANY destination is rainy/cold/abroad, add that gear.
   const combined = {
     rain: results.some((r) => r.found && r.rain),
     cold: results.some((r) => r.found && r.cold),
+    international: results.some((r) => r.found && r.countryCode != null && r.countryCode !== HOME_COUNTRY),
   }
   const anyHistorical = results.some((r) => r.found && r.source === "historical")
   const anyElevation = results.some((r) => r.found && r.elevationAdjustF > 0)
   const note = [
     anyHistorical ? "Far-out dates use typical weather from the same time last year." : "",
     anyElevation ? "Temps cooled ~3.5°F per 1,000 ft for your camp elevation." : "",
+    combined.international ? "Destination is abroad — added passport & travel items." : "",
   ]
     .filter(Boolean)
     .join(" ")

@@ -137,7 +137,7 @@ const GEAR: GearItem[] = [
   { id: "p-glasses-contacts", name: "Glasses & contacts", category: "personal", qty: 1, notes: "Glasses, contacts, lens solution, case" },
   { id: "p-meds", name: "Personal medications", category: "personal", qty: 1 },
   { id: "p-diabetes-tommy", name: "Diabetes supplies", category: "personal", onlyPerson: "Tommy", qty: 1, notes: "Insulin, glucose meter, test strips, snacks, backup pump supplies" },
-  { id: "p-bug-headnet", name: "Bug head net", category: "personal", requiresAnyWeather: ["buggy"] },
+  { id: "p-bug-headnet", name: "Bug head net", category: "personal", seasons: ["Summer", "Shoulder Season"] },
   { id: "p-passport", name: "Passport", category: "personal", requiresAnyWeather: ["international"] },
 
   // ---- Personal: city / town crossover ----
@@ -160,7 +160,7 @@ const GEAR: GearItem[] = [
   { id: "s-powerbank", name: "Power bank + cables", category: "shared", defaultOwner: "Danielle", qty: 1 },
   { id: "s-travel-adapter", name: "Travel power adapter", category: "shared", defaultOwner: "Danielle", requiresAnyWeather: ["international"], qty: 1 },
   { id: "s-walkie-talkie", name: "Walkie talkies", category: "shared", defaultOwner: "Tommy", qty: 2 },
-  { id: "s-bug-spray", name: "Bug spray", category: "shared", defaultOwner: "Danielle", requiresAnyWeather: ["buggy"] },
+  { id: "s-bug-spray", name: "Bug spray", category: "shared", defaultOwner: "Danielle", seasons: ["Summer", "Shoulder Season"] },
   { id: "s-sunscreen", name: "Sunscreen", category: "shared", defaultOwner: "Danielle", seasons: ["Summer", "Shoulder Season"] },
   { id: "s-tarp", name: "Extra tarp", category: "shared", defaultOwner: "Tommy", requiresAnyWeather: ["rain"] },
   { id: "s-paddles", name: "Paddles + PFDs", category: "shared", defaultOwner: "Tommy", activities: ["Kayaking"] },
