@@ -1,22 +1,43 @@
 "use client"
 
 import { useState } from "react"
-import { Compass, Loader2, Minus, Plus } from "lucide-react"
+import { CloudSun, Compass, Loader2, MapPin, Mountain, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { generateChecklist, newId, type ListDefaults } from "@/lib/gear-library"
+import { checkWeather, type WeatherResult } from "@/app/actions/weather"
 import {
   ACTIVITIES,
   emptyWeather,
   PEOPLE,
-  SEASONS,
-  WEATHER_KEYS,
-  WEATHER_LABELS,
   type Activity,
   type Person,
   type Season,
   type Trip,
   type Weather,
 } from "@/lib/types"
+
+/** Nights between two ISO dates (0 if invalid or non-positive). */
+function nightsBetween(start: string, end: string): number {
+  if (!start || !end) return 0
+  const a = new Date(`${start}T00:00:00`).getTime()
+  const b = new Date(`${end}T00:00:00`).getTime()
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0
+  const d = Math.round((b - a) / 86400000)
+  return d > 0 ? d : 0
+}
+
+/**
+ * Derive the trip season from a start date (Northern Hemisphere).
+ * Jun–Aug = Summer, Dec–Feb = Winter, everything else = Shoulder Season.
+ */
+function seasonFromDate(start: string): Season {
+  if (!start) return "Summer"
+  const month = new Date(`${start}T00:00:00`).getMonth() // 0-11
+  if (Number.isNaN(month)) return "Summer"
+  if (month >= 5 && month <= 7) return "Summer"
+  if (month === 11 || month <= 1) return "Winter"
+  return "Shoulder Season"
+}
 
 type Props = {
   onCreate: (trip: Trip) => void
@@ -28,10 +49,66 @@ type Props = {
 export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
   const [name, setName] = useState("")
   const [activities, setActivities] = useState<Activity[]>(["Backpacking"])
-  const [season, setSeason] = useState<Season>("Summer")
-  const [nights, setNights] = useState(2)
   const [people, setPeople] = useState<Person[]>(["Danielle", "Tommy"])
   const [weather, setWeather] = useState<Weather>(emptyWeather())
+
+  // Dates & destinations for the weather lookup.
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [destinations, setDestinations] = useState<string[]>([])
+  const [destInput, setDestInput] = useState("")
+  const [elevationFt, setElevationFt] = useState("")
+  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherResult, setWeatherResult] = useState<WeatherResult | null>(null)
+
+  const hasDates = Boolean(startDate && endDate)
+  const derivedNights = hasDates ? nightsBetween(startDate, endDate) : 0
+  // Nights come from the date range; fall back to 2 if dates aren't set yet.
+  const effectiveNights = hasDates ? derivedNights : 2
+  // Season is inferred from the start date (defaults to Summer until a date is set).
+  const season = seasonFromDate(startDate)
+
+  function addDestination() {
+    const value = destInput.trim()
+    if (!value) return
+    setDestinations((prev) => (prev.some((d) => d.toLowerCase() === value.toLowerCase()) ? prev : [...prev, value]))
+    setDestInput("")
+  }
+
+  function removeDestination(value: string) {
+    setDestinations((prev) => prev.filter((d) => d !== value))
+  }
+
+  async function handleCheckWeather() {
+    if (destinations.length === 0 || !hasDates) return
+    setWeatherLoading(true)
+    try {
+      const elevNum = elevationFt.trim() ? Number.parseInt(elevationFt, 10) : null
+      const result = await checkWeather(
+        destinations,
+        startDate,
+        endDate,
+        Number.isFinite(elevNum) ? elevNum : null,
+      )
+      setWeatherResult(result)
+      // Auto-set the conditions that drive gear selection from the lookup.
+      setWeather((prev) => ({
+        ...prev,
+        rain: result.combined.rain,
+        cold: result.combined.cold,
+        international: result.combined.international,
+      }))
+    } catch {
+      setWeatherResult({
+        destinations: [],
+        combined: { rain: false, cold: false, international: false },
+        note: "",
+        error: "Weather lookup failed. Try again.",
+      })
+    } finally {
+      setWeatherLoading(false)
+    }
+  }
 
   function togglePerson(p: Person) {
     setPeople((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]))
@@ -41,18 +118,22 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
     setActivities((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]))
   }
 
-  function toggleWeather(key: keyof Weather) {
-    setWeather((prev) => ({ ...prev, [key]: !prev[key] }))
-  }
-
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const tripName = name.trim() || `${activities[0] ?? "New"} Trip`
-    const base = { activities, season, nights, people, weather }
+    const base = { activities, season, nights: effectiveNights, people, weather }
+    const weatherNote = weatherResult?.destinations
+      .filter((d) => d.found)
+      .map((d) => `${d.resolvedName ?? d.query}: ${d.summary}`)
+      .join(" ")
     const trip: Trip = {
       id: newId(),
       name: tripName,
       ...base,
+      destinations: destinations.length > 0 ? destinations : undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      weatherNote: weatherNote || undefined,
       items: generateChecklist(base, defaults),
       createdAt: Date.now(),
     }
@@ -117,44 +198,178 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         </div>
       </Field>
 
-      {/* Season */}
-      <Field label="Season" htmlFor="trip-season">
-        <Select
-          id="trip-season"
-          value={season}
-          onChange={(v) => setSeason(v as Season)}
-          options={SEASONS as readonly string[]}
-        />
+      {/* Dates */}
+      <Field label="Trip dates">
+        <p className="-mt-1 text-xs text-muted-foreground">
+          Add dates to auto-count nights and look up the weather.
+        </p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            Start
+            <input
+              type="date"
+              value={startDate}
+              max={endDate || undefined}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="h-11 w-full rounded-lg border border-input bg-card px-3 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            End
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="h-11 w-full rounded-lg border border-input bg-card px-3 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+            />
+          </label>
+        </div>
+        {hasDates ? (
+          <p className="text-sm text-muted-foreground">
+            {derivedNights} {derivedNights === 1 ? "night" : "nights"} · {season} — used to size your list.
+          </p>
+        ) : null}
       </Field>
 
-      {/* Nights */}
-      <Field label="Number of nights">
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-lg"
-            aria-label="Decrease nights"
-            onClick={() => setNights((n) => Math.max(0, n - 1))}
-            className="size-11 rounded-lg"
-          >
-            <Minus className="size-4" />
+      {/* Destinations + weather lookup */}
+      <Field label="Destinations">
+        <p className="-mt-1 text-xs text-muted-foreground">
+          Add one or more places — we&apos;ll check the forecast and adjust your gear.
+        </p>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <MapPin
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <input
+              value={destInput}
+              onChange={(e) => setDestInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) {
+                  e.preventDefault()
+                  addDestination()
+                }
+              }}
+              placeholder="e.g. Aspen, CO"
+              className="h-11 w-full rounded-lg border border-input bg-card pl-9 pr-3 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+            />
+          </div>
+          <Button type="button" variant="outline" onClick={addDestination} className="h-11 rounded-lg">
+            Add
           </Button>
-          <span className="min-w-12 text-center text-lg font-semibold tabular-nums" aria-live="polite">
-            {nights}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-lg"
-            aria-label="Increase nights"
-            onClick={() => setNights((n) => Math.min(60, n + 1))}
-            className="size-11 rounded-lg"
-          >
-            <Plus className="size-4" />
-          </Button>
-          <span className="text-sm text-muted-foreground">{nights === 1 ? "night" : "nights"}</span>
         </div>
+
+        {destinations.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {destinations.map((d) => (
+              <span
+                key={d}
+                className="flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-sm"
+              >
+                {d}
+                <button
+                  type="button"
+                  onClick={() => removeDestination(d)}
+                  aria-label={`Remove ${d}`}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+          Camp elevation (optional)
+          <div className="relative">
+            <Mountain
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={100}
+              value={elevationFt}
+              onChange={(e) => setElevationFt(e.target.value)}
+              placeholder="e.g. 9000"
+              className="h-11 w-full rounded-lg border border-input bg-card pl-9 pr-12 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              ft
+            </span>
+          </div>
+          <span className="font-normal">
+            If you&apos;ll camp higher than the town, we cool the forecast ~3.5°F per 1,000 ft so cold gear is added.
+          </span>
+        </label>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleCheckWeather}
+          disabled={destinations.length === 0 || !hasDates || weatherLoading}
+          className="h-11 rounded-lg"
+        >
+          {weatherLoading ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <CloudSun className="size-4" aria-hidden="true" />
+          )}
+          {weatherLoading ? "Checking weather…" : "Check weather & adjust list"}
+        </Button>
+        {!hasDates && destinations.length > 0 ? (
+          <p className="text-xs text-muted-foreground">Add trip dates above to enable the weather check.</p>
+        ) : null}
+
+        {weatherResult ? (
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/50 p-3">
+            {weatherResult.error ? (
+              <p className="text-sm text-destructive">{weatherResult.error}</p>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <CloudSun className="size-4 text-accent-foreground" aria-hidden="true" />
+                  Forecast summary
+                </div>
+                <ul className="flex flex-col gap-1.5">
+                  {weatherResult.destinations.map((d) => (
+                    <li key={d.query} className="text-sm">
+                      <span className="font-medium">{d.resolvedName ?? d.query}</span>
+                      <span className="text-muted-foreground"> — {d.summary}</span>
+                    </li>
+                  ))}
+                </ul>
+                {weatherResult.combined.rain ||
+                weatherResult.combined.cold ||
+                weatherResult.combined.international ? (
+                  <p className="text-xs text-muted-foreground">
+                    Adjusted your list for{" "}
+                    {[
+                      weatherResult.combined.rain ? "rain" : null,
+                      weatherResult.combined.cold ? "cold nights" : null,
+                      weatherResult.combined.international ? "international travel" : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" & ")}
+                    .
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No rain, cold, or international conditions flagged.
+                  </p>
+                )}
+                {weatherResult.note ? (
+                  <p className="text-xs text-muted-foreground">{weatherResult.note}</p>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : null}
       </Field>
 
       {/* People */}
@@ -191,45 +406,6 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         </div>
       </Field>
 
-      {/* Weather toggles */}
-      <Field label="Conditions">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {WEATHER_KEYS.map((key) => {
-            const active = weather[key]
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => toggleWeather(key)}
-                aria-pressed={active}
-                className={[
-                  "flex h-11 items-center justify-between rounded-lg border px-4 text-sm font-medium transition-colors",
-                  active
-                    ? "border-accent bg-accent text-accent-foreground"
-                    : "border-input bg-card text-foreground hover:bg-muted",
-                ].join(" ")}
-              >
-                {WEATHER_LABELS[key]}
-                <span
-                  className={[
-                    "ml-2 flex h-5 w-9 items-center rounded-full p-0.5 transition-colors",
-                    active ? "bg-accent-foreground/30" : "bg-muted-foreground/30",
-                  ].join(" ")}
-                  aria-hidden="true"
-                >
-                  <span
-                    className={[
-                      "size-4 rounded-full bg-card transition-transform",
-                      active ? "translate-x-4" : "translate-x-0",
-                    ].join(" ")}
-                  />
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </Field>
-
       <div className="sticky bottom-0 -mx-4 flex gap-2 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
         {onCancel ? (
           <Button type="button" variant="outline" onClick={onCancel} disabled={submitting} className="h-11 flex-1 rounded-lg sm:flex-none">
@@ -260,45 +436,6 @@ function Field({
         {label}
       </label>
       {children}
-    </div>
-  )
-}
-
-function Select({
-  id,
-  value,
-  onChange,
-  options,
-}: {
-  id?: string
-  value: string
-  onChange: (v: string) => void
-  options: readonly string[]
-}) {
-  return (
-    <div className="relative">
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-full appearance-none rounded-lg border border-input bg-card px-3 pr-9 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-      >
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-      <svg
-        className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        aria-hidden="true"
-      >
-        <path d="m6 9 6 6 6-6" />
-      </svg>
     </div>
   )
 }

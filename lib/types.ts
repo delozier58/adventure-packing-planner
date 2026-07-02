@@ -52,6 +52,13 @@ export type Trip = {
   nights: number
   people: Person[]
   weather: Weather
+  /** Optional destinations used for the weather lookup. */
+  destinations?: string[]
+  /** Trip start/end dates (ISO yyyy-mm-dd) when set. */
+  startDate?: string
+  endDate?: string
+  /** Short human-readable summary from the last weather lookup. */
+  weatherNote?: string
   items: ChecklistItem[]
   createdAt: number
   /** Last server-write timestamp (ms), used for sync conflict resolution. */
