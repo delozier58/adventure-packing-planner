@@ -62,24 +62,38 @@ export default function Page() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 pb-10">
-      <div className="sticky top-0 z-30 -mx-4 mb-2 flex items-center justify-between border-b border-border bg-background/90 px-4 py-3 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Mountain className="size-4" aria-hidden="true" />
+      {/* Hero header with topographic texture */}
+      <header
+        className="relative -mx-4 overflow-hidden rounded-b-3xl bg-[#1f3d2e] px-5 pb-7 pt-8 text-primary-foreground shadow-sm"
+        style={{
+          backgroundImage: "url(/topo-hero.png)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#16301f] via-[#1f3d2e]/40 to-transparent" />
+        <div className="relative flex items-start justify-between gap-3">
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-primary-foreground/15 backdrop-blur-sm ring-1 ring-primary-foreground/25">
+            <Mountain className="size-5" aria-hidden="true" />
           </span>
-          <h1 className="text-base font-semibold leading-none">Adventure Packing Planner</h1>
+          <Link
+            href="/defaults"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-foreground/10 px-3 py-1.5 text-sm font-medium text-primary-foreground/90 ring-1 ring-primary-foreground/20 backdrop-blur-sm transition-colors hover:bg-primary-foreground/20"
+          >
+            <SlidersHorizontal className="size-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Customize defaults</span>
+            <span className="sm:hidden">Defaults</span>
+          </Link>
         </div>
-        <Link
-          href="/defaults"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <SlidersHorizontal className="size-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Customize defaults</span>
-          <span className="sm:hidden">Defaults</span>
-        </Link>
-      </div>
+        <div className="relative mt-5">
+          <h1 className="text-pretty text-2xl font-bold leading-tight sm:text-3xl">Adventure Packing Planner</h1>
+          <p className="mt-1.5 max-w-md text-pretty text-sm text-primary-foreground/80">
+            Smart, reusable packing lists that adapt to your dates, destinations, and the forecast.
+          </p>
+        </div>
+      </header>
 
-      <div className="flex flex-col gap-6 py-4">
+      <div className="flex flex-col gap-6 py-6">
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
           <TripSetup onCreate={handleCreate} submitting={creating} defaults={defaults} />
         </div>

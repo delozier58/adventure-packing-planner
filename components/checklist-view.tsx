@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { CheckoffCelebration, celebrationForSection, type Celebration } from "@/components/checkoff-celebration"
 import { newId } from "@/lib/gear-library"
 import { PEOPLE, SECTIONS, tripActivities, type ChecklistItem, type Person, type Section, type Trip } from "@/lib/types"
 
@@ -59,6 +60,16 @@ export function ChecklistView({
   onShare,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
+
+  // Easter egg: pop a themed sticker when an item goes from unpacked -> packed.
+  const [celebration, setCelebration] = useState<Celebration | null>(null)
+  const handleToggle = (itemId: string) => {
+    const item = trip.items.find((i) => i.id === itemId)
+    if (item && !item.packed) {
+      setCelebration(celebrationForSection(item.section))
+    }
+    onToggleItem(itemId)
+  }
 
   // Per-device focus: "Everyone" or a specific person. Remembered across trips
   // so Tommy lands on his list and Danielle on hers.
@@ -257,12 +268,14 @@ export function ChecklistView({
           section={section}
           hint={SECTION_HINT[section]}
           items={grouped[section]}
-          onToggleItem={onToggleItem}
+          onToggleItem={handleToggle}
           onRemoveItem={onRemoveItem}
           onSetOwner={onSetOwner}
           onAddItem={onAddItem}
         />
       ))}
+
+      <CheckoffCelebration celebration={celebration} onDone={() => setCelebration(null)} />
     </div>
   )
 }
@@ -408,7 +421,7 @@ function ItemRow({
         aria-label={`Mark ${item.name} as ${item.packed ? "not packed" : "packed"}`}
         onClick={onToggle}
         className={[
-          "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md border transition-colors",
+          "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md border transition-all duration-150 active:scale-90",
           item.packed ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:border-primary",
         ].join(" ")}
       >
