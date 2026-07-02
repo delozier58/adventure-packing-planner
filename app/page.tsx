@@ -5,9 +5,9 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Compass, Loader2, Mountain, SlidersHorizontal } from "lucide-react"
 import { TripSetup } from "@/components/trip-setup"
-import { createTrip, getTripSummaries } from "@/app/actions/trips"
+import { createTrip, getAllTripSummaries } from "@/app/actions/trips"
 import { getDefaults } from "@/app/actions/defaults"
-import { getRecentCodes, rememberCode } from "@/lib/recent-trips"
+import { rememberCode } from "@/lib/recent-trips"
 import { emptyDefaults, type ListDefaults } from "@/lib/gear-library"
 import { tripActivities, type Trip, type TripSummary } from "@/lib/types"
 
@@ -23,17 +23,10 @@ export default function Page() {
       .catch(() => {})
   }, [])
 
-  const loadRecent = useCallback(async () => {
-    const codes = getRecentCodes()
-    if (codes.length === 0) {
-      setSummaries([])
-      return
-    }
+  const loadTrips = useCallback(async () => {
     try {
-      const result = await getTripSummaries(codes)
-      // Preserve recency order from localStorage.
-      const order = new Map(codes.map((c, i) => [c, i]))
-      result.sort((a, b) => (order.get(a.code) ?? 0) - (order.get(b.code) ?? 0))
+      // Show every saved trip (newest first) so lists are visible on any device.
+      const result = await getAllTripSummaries()
       setSummaries(result)
     } catch {
       setSummaries([])
@@ -41,8 +34,8 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
-    loadRecent()
-  }, [loadRecent])
+    loadTrips()
+  }, [loadTrips])
 
   async function handleCreate(trip: Trip) {
     setCreating(true)
@@ -88,7 +81,11 @@ export default function Page() {
           </div>
         ) : summaries.length > 0 ? (
           <SavedTrips trips={summaries} onOpen={(code) => router.push(`/t/${code}`)} />
-        ) : null}
+        ) : (
+          <p className="px-1 py-2 text-sm text-muted-foreground">
+            No trips yet. Plan a new trip above to get started.
+          </p>
+        )}
       </div>
     </main>
   )
