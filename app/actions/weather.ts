@@ -55,27 +55,71 @@ function round(n: number | null): number | null {
   return n == null ? null : Math.round(n)
 }
 
+type GeoResult = {
+  name: string
+  latitude: number
+  longitude: number
+  elevation?: number
+  admin1?: string
+  country?: string
+  country_code?: string
+}
+
+// US state abbreviations → full names, so "Seattle, WA" resolves correctly.
+const US_STATES: Record<string, string> = {
+  al: "alabama", ak: "alaska", az: "arizona", ar: "arkansas", ca: "california",
+  co: "colorado", ct: "connecticut", de: "delaware", fl: "florida", ga: "georgia",
+  hi: "hawaii", id: "idaho", il: "illinois", in: "indiana", ia: "iowa",
+  ks: "kansas", ky: "kentucky", la: "louisiana", me: "maine", md: "maryland",
+  ma: "massachusetts", mi: "michigan", mn: "minnesota", ms: "mississippi", mo: "missouri",
+  mt: "montana", ne: "nebraska", nv: "nevada", nh: "new hampshire", nj: "new jersey",
+  nm: "new mexico", ny: "new york", nc: "north carolina", nd: "north dakota", oh: "ohio",
+  ok: "oklahoma", or: "oregon", pa: "pennsylvania", ri: "rhode island", sc: "south carolina",
+  sd: "south dakota", tn: "tennessee", tx: "texas", ut: "utah", vt: "vermont",
+  va: "virginia", wa: "washington", wv: "west virginia", wi: "wisconsin", wy: "wyoming",
+}
+
+async function search(name: string, count: number): Promise<GeoResult[]> {
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
+    name,
+  )}&count=${count}&language=en&format=json`
+  const res = await fetch(url, { cache: "no-store" })
+  if (!res.ok) return []
+  const data = (await res.json()) as { results?: GeoResult[] }
+  return data.results ?? []
+}
+
 async function geocode(
   query: string,
 ): Promise<{ name: string; lat: number; lon: number; elevationFt: number | null } | null> {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-    query,
-  )}&count=1&language=en&format=json`
   try {
-    const res = await fetch(url, { cache: "no-store" })
-    if (!res.ok) return null
-    const data = (await res.json()) as {
-      results?: {
-        name: string
-        latitude: number
-        longitude: number
-        elevation?: number
-        admin1?: string
-        country?: string
-      }[]
+    // The Open-Meteo geocoder matches on a place name only — a "City, State"
+    // string won't match. So split off any region hint and search the city,
+    // then disambiguate by the hint (state name/abbrev or country).
+    const segments = query.split(",").map((s) => s.trim()).filter(Boolean)
+    const city = segments[0] || query.trim()
+    const hint = segments[1]?.toLowerCase()
+
+    // Try the raw query first (handles multi-word names like "Denali National Park"),
+    // then fall back to just the city segment.
+    let results = await search(query.trim(), 10)
+    if (results.length === 0 && city !== query.trim()) {
+      results = await search(city, 10)
     }
-    const r = data.results?.[0]
-    if (!r) return null
+    if (results.length === 0) return null
+
+    let r = results[0]
+    if (hint) {
+      const hintFull = US_STATES[hint] ?? hint
+      const match = results.find((res) => {
+        const a1 = res.admin1?.toLowerCase() ?? ""
+        const cc = res.country_code?.toLowerCase() ?? ""
+        const ctry = res.country?.toLowerCase() ?? ""
+        return a1 === hintFull || a1 === hint || cc === hint || ctry === hintFull || ctry === hint
+      })
+      if (match) r = match
+    }
+
     const parts = [r.name, r.admin1, r.country].filter(Boolean)
     return {
       name: parts.join(", "),
