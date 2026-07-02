@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-space-grotesk), var(--font-geist-sans), 'Geist Fallback';
   --font-sans: var(--font-geist-sans), 'Geist Fallback';
   --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
   --color-sidebar-ring: var(--sidebar-ring);
@@ -122,24 +122,24 @@
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     color-scheme: dark;
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    --background: oklch(0.16 0.012 150);
+    --foreground: oklch(0.96 0.01 110);
+    --card: oklch(0.21 0.015 150);
+    --card-foreground: oklch(0.96 0.01 110);
+    --popover: oklch(0.21 0.015 150);
+    --popover-foreground: oklch(0.96 0.01 110);
+    --primary: oklch(0.7 0.12 150);
+    --primary-foreground: oklch(0.18 0.02 150);
+    --secondary: oklch(0.28 0.03 150);
+    --secondary-foreground: oklch(0.95 0.01 110);
+    --muted: oklch(0.27 0.02 150);
+    --muted-foreground: oklch(0.72 0.03 120);
+    --accent: oklch(0.78 0.13 75);
+    --accent-foreground: oklch(0.22 0.04 60);
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
+    --border: oklch(1 0 0 / 12%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --ring: oklch(0.7 0.12 150);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -165,5 +165,45 @@
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Playful pop-in used by the check-off easter egg sticker. */
+@keyframes sticker-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.6) rotate(-8deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.08) rotate(3deg);
+  }
+  70% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+}
+
+.animate-sticker-pop {
+  animation: sticker-pop 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sticker-pop {
+    animation-duration: 1s;
+    animation-timing-function: ease;
   }
 }

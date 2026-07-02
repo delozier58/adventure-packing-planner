@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CloudSun, Compass, Loader2, MapPin, Mountain, X } from "lucide-react"
+import { Calendar, CloudSun, Compass, Loader2, MapPin, Mountain, Tag, Users, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { generateChecklist, newId, type ListDefaults } from "@/lib/gear-library"
 import { checkWeather, type WeatherResult } from "@/app/actions/weather"
@@ -68,6 +68,9 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
   const effectiveNights = hasDates ? derivedNights : 2
   // Season is inferred from the start date (defaults to Summer until a date is set).
   const season = seasonFromDate(startDate)
+  // Elevation only matters for land-based, camp-oriented activities.
+  const ELEVATION_ACTIVITIES: Activity[] = ["Backpacking", "Hut-to-Hut", "Car Camping", "Bikepacking", "Fastpacking"]
+  const showElevation = activities.some((a) => ELEVATION_ACTIVITIES.includes(a))
 
   function addDestination() {
     const value = destInput.trim()
@@ -92,8 +95,8 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         destinations,
         startDate,
         endDate,
-        parseElev(minElevationFt),
-        parseElev(maxElevationFt),
+        showElevation ? parseElev(minElevationFt) : null,
+        showElevation ? parseElev(maxElevationFt) : null,
       )
       setWeatherResult(result)
       // Auto-set the conditions that drive gear selection from the lookup.
@@ -158,7 +161,7 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
       </div>
 
       {/* Trip name */}
-      <Field label="Trip name" htmlFor="trip-name">
+      <Field label="Trip name" htmlFor="trip-name" icon={<Tag />}>
         <input
           id="trip-name"
           value={name}
@@ -168,43 +171,8 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         />
       </Field>
 
-      {/* Activities (multi-select) */}
-      <Field label="Activities">
-        <p className="-mt-1 text-xs text-muted-foreground">Pick all that apply — mix outdoor and city time.</p>
-        <div className="flex flex-wrap gap-2">
-          {ACTIVITIES.map((a) => {
-            const active = activities.includes(a)
-            return (
-              <button
-                key={a}
-                type="button"
-                onClick={() => toggleActivity(a)}
-                aria-pressed={active}
-                className={[
-                  "flex h-11 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors",
-                  active
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-input bg-card text-foreground hover:bg-muted",
-                ].join(" ")}
-              >
-                <span
-                  className={[
-                    "flex size-5 items-center justify-center rounded-md border text-xs",
-                    active ? "border-primary-foreground/60 bg-primary-foreground/20" : "border-border",
-                  ].join(" ")}
-                  aria-hidden="true"
-                >
-                  {active ? "✓" : ""}
-                </span>
-                {a}
-              </button>
-            )
-          })}
-        </div>
-      </Field>
-
       {/* Dates */}
-      <Field label="Trip dates">
+      <Field label="Trip dates" icon={<Calendar />} divided>
         <p className="-mt-1 text-xs text-muted-foreground">
           Add dates to auto-count nights and look up the weather.
         </p>
@@ -237,8 +205,43 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         ) : null}
       </Field>
 
+      {/* Activities (multi-select) */}
+      <Field label="Activities" icon={<Mountain />} divided>
+        <p className="-mt-1 text-xs text-muted-foreground">Pick all that apply — mix outdoor and city time.</p>
+        <div className="flex flex-wrap gap-2">
+          {ACTIVITIES.map((a) => {
+            const active = activities.includes(a)
+            return (
+              <button
+                key={a}
+                type="button"
+                onClick={() => toggleActivity(a)}
+                aria-pressed={active}
+                className={[
+                  "flex h-11 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-all duration-150 active:scale-[0.96]",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-input bg-card text-foreground hover:bg-muted hover:shadow-sm",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "flex size-5 items-center justify-center rounded-md border text-xs",
+                    active ? "border-primary-foreground/60 bg-primary-foreground/20" : "border-border",
+                  ].join(" ")}
+                  aria-hidden="true"
+                >
+                  {active ? "✓" : ""}
+                </span>
+                {a}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
+
       {/* Destinations + weather lookup */}
-      <Field label="Destinations">
+      <Field label="Destinations" icon={<MapPin />} divided>
         <p className="-mt-1 text-xs text-muted-foreground">
           Add one or more places — we&apos;ll check the forecast and adjust your gear.
         </p>
@@ -287,6 +290,7 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
           </div>
         ) : null}
 
+        {showElevation ? (
         <div className="flex flex-col gap-2">
           <span className="text-xs font-medium text-muted-foreground">Elevation range (optional)</span>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -340,6 +344,7 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
             highest camp. Enter either or both.
           </span>
         </div>
+        ) : null}
 
         <Button
           type="button"
@@ -360,7 +365,7 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         ) : null}
 
         {weatherResult ? (
-          <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/50 p-3">
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/50 p-3 duration-300 animate-in fade-in slide-in-from-top-1">
             {weatherResult.error ? (
               <p className="text-sm text-destructive">{weatherResult.error}</p>
             ) : (
@@ -406,7 +411,7 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
       </Field>
 
       {/* People */}
-      <Field label="Who's going?">
+      <Field label="Who's going?" icon={<Users />} divided>
         <div className="flex flex-wrap gap-2">
           {PEOPLE.map((p) => {
             const active = people.includes(p)
@@ -445,7 +450,11 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
             Cancel
           </Button>
         ) : null}
-        <Button type="submit" disabled={submitting || activities.length === 0} className="h-11 flex-1 rounded-lg text-base">
+        <Button
+          type="submit"
+          disabled={submitting || activities.length === 0}
+          className="h-12 flex-1 rounded-lg text-base font-semibold shadow-sm transition-all duration-150 hover:shadow-md active:scale-[0.99]"
+        >
           {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
           {submitting ? "Creating…" : "Generate packing list"}
         </Button>
@@ -457,15 +466,27 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
 function Field({
   label,
   htmlFor,
+  icon,
+  divided,
   children,
 }: {
   label: string
   htmlFor?: string
+  icon?: React.ReactNode
+  divided?: boolean
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={htmlFor} className="text-sm font-medium text-foreground">
+    <div className={["flex flex-col gap-2", divided ? "border-t border-border/70 pt-6" : ""].join(" ")}>
+      <label htmlFor={htmlFor} className="flex items-center gap-2 text-sm font-medium text-foreground">
+        {icon ? (
+          <span
+            className="flex size-6 items-center justify-center rounded-md bg-secondary text-secondary-foreground [&>svg]:size-3.5"
+            aria-hidden="true"
+          >
+            {icon}
+          </span>
+        ) : null}
         {label}
       </label>
       {children}
