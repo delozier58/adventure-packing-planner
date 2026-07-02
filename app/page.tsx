@@ -1,17 +1,27 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Compass, Loader2, Mountain } from "lucide-react"
+import { Compass, Loader2, Mountain, SlidersHorizontal } from "lucide-react"
 import { TripSetup } from "@/components/trip-setup"
 import { createTrip, getTripSummaries } from "@/app/actions/trips"
+import { getDefaults } from "@/app/actions/defaults"
 import { getRecentCodes, rememberCode } from "@/lib/recent-trips"
+import { emptyDefaults, type ListDefaults } from "@/lib/gear-library"
 import { tripActivities, type Trip, type TripSummary } from "@/lib/types"
 
 export default function Page() {
   const router = useRouter()
   const [summaries, setSummaries] = useState<TripSummary[] | null>(null)
   const [creating, setCreating] = useState(false)
+  const [defaults, setDefaults] = useState<ListDefaults>(emptyDefaults())
+
+  useEffect(() => {
+    getDefaults()
+      .then(setDefaults)
+      .catch(() => {})
+  }, [])
 
   const loadRecent = useCallback(async () => {
     const codes = getRecentCodes()
@@ -54,11 +64,19 @@ export default function Page() {
           </span>
           <h1 className="text-base font-semibold leading-none">Adventure Packing Planner</h1>
         </div>
+        <Link
+          href="/defaults"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <SlidersHorizontal className="size-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Customize defaults</span>
+          <span className="sm:hidden">Defaults</span>
+        </Link>
       </div>
 
       <div className="flex flex-col gap-6 py-4">
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
-          <TripSetup onCreate={handleCreate} submitting={creating} />
+          <TripSetup onCreate={handleCreate} submitting={creating} defaults={defaults} />
         </div>
 
         <OpenByCode />

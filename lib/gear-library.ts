@@ -2,7 +2,50 @@ import type { Activity, ChecklistItem, Person, Season, Trip, WeatherKey } from "
 
 // Category drives which section an item lands in.
 // "personal" items are duplicated once per selected person.
-type Category = "personal" | "shared" | "food" | "before-leaving"
+export type Category = "personal" | "shared" | "food" | "before-leaving"
+
+export const CATEGORY_LABELS: Record<Category, string> = {
+  personal: "Personal (per person)",
+  shared: "Shared gear",
+  food: "Food",
+  "before-leaving": "Before leaving",
+}
+
+/** A user-added item that should appear on every future matching list. */
+export type CustomDefault = {
+  id: string
+  name: string
+  category: Category
+  /** Empty = applies to all trips; otherwise only when one of these activities is selected. */
+  activities: Activity[]
+  qty: number
+  notes?: string
+  /** Default owner for shared items. */
+  defaultOwner?: Person
+}
+
+/** The shared, editable customization layer applied on top of the built-in library. */
+export type ListDefaults = {
+  /** Built-in gear ids that should be excluded from every new list. */
+  hiddenIds: string[]
+  /** Extra items to add to every new matching list. */
+  customItems: CustomDefault[]
+}
+
+export function emptyDefaults(): ListDefaults {
+  return { hiddenIds: [], customItems: [] }
+}
+
+/** Lightweight view of a built-in item for the defaults editor. */
+export type BuiltInGear = {
+  id: string
+  name: string
+  category: Category
+  activities?: Activity[]
+  seasons?: Season[]
+  requiresAnyWeather?: WeatherKey[]
+  notes?: string
+}
 
 type GearItem = {
   id: string
@@ -145,6 +188,19 @@ const GEAR: GearItem[] = [
   { id: "b-shuttle", name: "Arrange shuttle / put-in logistics", category: "before-leaving", qty: 1, activities: ["Kayaking", "Backpacking"] },
 ]
 
+/** Built-in items exposed for the defaults editor (metadata only). */
+export function listBuiltInGear(): BuiltInGear[] {
+  return GEAR.map((g) => ({
+    id: g.id,
+    name: g.name,
+    category: g.category,
+    activities: g.activities,
+    seasons: g.seasons,
+    requiresAnyWeather: g.requiresAnyWeather,
+    notes: g.notes,
+  }))
+}
+
 function matches(item: GearItem, trip: Pick<Trip, "activities" | "season" | "weather">): boolean {
   if (item.activities && !item.activities.some((a) => trip.activities.includes(a))) return false
   if (item.seasons && !item.seasons.includes(trip.season)) return false
@@ -170,11 +226,25 @@ function newId(): string {
 
 export function generateChecklist(
   trip: Pick<Trip, "activities" | "season" | "nights" | "people" | "weather">,
+  defaults?: ListDefaults,
 ): ChecklistItem[] {
   const items: ChecklistItem[] = []
   const people = trip.people.length > 0 ? trip.people : []
 
-  for (const gear of GEAR) {
+  const hidden = new Set(defaults?.hiddenIds ?? [])
+  // Built-in items that haven't been turned off, plus any custom recurring items.
+  const customAsGear: GearItem[] = (defaults?.customItems ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    category: c.category,
+    activities: c.activities.length > 0 ? c.activities : undefined,
+    defaultOwner: c.defaultOwner,
+    notes: c.notes,
+    qty: c.qty,
+  }))
+  const activeGear = [...GEAR.filter((g) => !hidden.has(g.id)), ...customAsGear]
+
+  for (const gear of activeGear) {
     if (!matches(gear, trip)) continue
     const quantity = computeQuantity(gear, trip.nights)
 
