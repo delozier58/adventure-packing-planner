@@ -64,23 +64,23 @@ export default function Page() {
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 pb-10">
       {/* Hero header with topographic texture */}
       <header
-        className="relative -mx-4 overflow-hidden rounded-b-3xl bg-[#2f6048] px-5 pb-7 pt-8 text-white shadow-sm"
+        className="relative -mx-4 overflow-hidden rounded-b-3xl bg-[#15171a] px-5 pb-7 pt-8 text-white shadow-sm ring-1 ring-white/5"
         style={{
-          backgroundImage: "url(/topo-hero.png)",
+          backgroundImage: "url(/topo-hero-dark.png)",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        {/* Brightening layer so the topo texture reads and the banner stays vibrant in dark mode */}
-        <div className="pointer-events-none absolute inset-0 bg-[#3a7256]/45" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1f3d2e]/60 via-transparent to-white/5" />
+        {/* Soft green accent glow in the top-left, fading into the charcoal slate */}
+        <div className="pointer-events-none absolute -left-16 -top-20 size-56 rounded-full bg-[#3f9b6e]/25 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f1113]/70 via-transparent to-transparent" />
         <div className="relative flex items-start justify-between gap-3">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm ring-1 ring-white/25">
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-[#3f9b6e]/20 text-[#7fd7a6] ring-1 ring-[#3f9b6e]/40 backdrop-blur-sm">
             <Mountain className="size-5" aria-hidden="true" />
           </span>
           <Link
             href="/defaults"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium text-white/90 ring-1 ring-white/20 backdrop-blur-sm transition-colors hover:bg-white/20"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white/8 px-3 py-1.5 text-sm font-medium text-white/85 ring-1 ring-white/15 backdrop-blur-sm transition-colors hover:bg-white/15"
           >
             <SlidersHorizontal className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Customize defaults</span>
