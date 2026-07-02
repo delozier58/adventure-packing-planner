@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CloudSun, Compass, Loader2, MapPin, Minus, Plus, X } from "lucide-react"
+import { CloudSun, Compass, Loader2, MapPin, Minus, Mountain, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { generateChecklist, newId, type ListDefaults } from "@/lib/gear-library"
 import { checkWeather, type WeatherResult } from "@/app/actions/weather"
@@ -49,6 +49,7 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
   const [endDate, setEndDate] = useState("")
   const [destinations, setDestinations] = useState<string[]>([])
   const [destInput, setDestInput] = useState("")
+  const [elevationFt, setElevationFt] = useState("")
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [weatherResult, setWeatherResult] = useState<WeatherResult | null>(null)
 
@@ -71,7 +72,13 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
     if (destinations.length === 0 || !hasDates) return
     setWeatherLoading(true)
     try {
-      const result = await checkWeather(destinations, startDate, endDate)
+      const elevNum = elevationFt.trim() ? Number.parseInt(elevationFt, 10) : null
+      const result = await checkWeather(
+        destinations,
+        startDate,
+        endDate,
+        Number.isFinite(elevNum) ? elevNum : null,
+      )
       setWeatherResult(result)
       // Auto-flip the condition toggles that drive gear selection.
       setWeather((prev) => ({ ...prev, rain: result.combined.rain, cold: result.combined.cold }))
@@ -304,6 +311,32 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
             ))}
           </div>
         ) : null}
+
+        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+          Camp elevation (optional)
+          <div className="relative">
+            <Mountain
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={100}
+              value={elevationFt}
+              onChange={(e) => setElevationFt(e.target.value)}
+              placeholder="e.g. 9000"
+              className="h-11 w-full rounded-lg border border-input bg-card pl-9 pr-12 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              ft
+            </span>
+          </div>
+          <span className="font-normal">
+            If you&apos;ll camp higher than the town, we cool the forecast ~3.5°F per 1,000 ft so cold gear is added.
+          </span>
+        </label>
 
         <Button
           type="button"
