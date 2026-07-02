@@ -277,14 +277,19 @@ export function generateChecklist(
         packed: false,
       })
     } else if (gear.category === "food") {
-      items.push({
-        id: newId(),
-        name: gear.name,
-        quantity,
-        section: "Food",
-        notes: gear.notes,
-        packed: false,
-      })
+      // Each person brings their own meals & snacks, so duplicate per person
+      // and attribute ownership, while keeping everything grouped in Food.
+      for (const person of people) {
+        items.push({
+          id: newId(),
+          name: gear.name,
+          quantity,
+          section: "Food",
+          owner: person,
+          notes: gear.notes,
+          packed: false,
+        })
+      }
     } else {
       items.push({
         id: newId(),
