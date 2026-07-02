@@ -68,6 +68,9 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
   const effectiveNights = hasDates ? derivedNights : 2
   // Season is inferred from the start date (defaults to Summer until a date is set).
   const season = seasonFromDate(startDate)
+  // Elevation only matters for land-based, camp-oriented activities.
+  const ELEVATION_ACTIVITIES: Activity[] = ["Backpacking", "Hut-to-Hut", "Car Camping", "Bikepacking", "Fastpacking"]
+  const showElevation = activities.some((a) => ELEVATION_ACTIVITIES.includes(a))
 
   function addDestination() {
     const value = destInput.trim()
@@ -92,8 +95,8 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         destinations,
         startDate,
         endDate,
-        parseElev(minElevationFt),
-        parseElev(maxElevationFt),
+        showElevation ? parseElev(minElevationFt) : null,
+        showElevation ? parseElev(maxElevationFt) : null,
       )
       setWeatherResult(result)
       // Auto-set the conditions that drive gear selection from the lookup.
@@ -202,6 +205,41 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         ) : null}
       </Field>
 
+      {/* Activities (multi-select) */}
+      <Field label="Activities" icon={<Mountain />} divided>
+        <p className="-mt-1 text-xs text-muted-foreground">Pick all that apply — mix outdoor and city time.</p>
+        <div className="flex flex-wrap gap-2">
+          {ACTIVITIES.map((a) => {
+            const active = activities.includes(a)
+            return (
+              <button
+                key={a}
+                type="button"
+                onClick={() => toggleActivity(a)}
+                aria-pressed={active}
+                className={[
+                  "flex h-11 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-all duration-150 active:scale-[0.96]",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-input bg-card text-foreground hover:bg-muted hover:shadow-sm",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "flex size-5 items-center justify-center rounded-md border text-xs",
+                    active ? "border-primary-foreground/60 bg-primary-foreground/20" : "border-border",
+                  ].join(" ")}
+                  aria-hidden="true"
+                >
+                  {active ? "✓" : ""}
+                </span>
+                {a}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
+
       {/* Destinations + weather lookup */}
       <Field label="Destinations" icon={<MapPin />} divided>
         <p className="-mt-1 text-xs text-muted-foreground">
@@ -252,6 +290,7 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
           </div>
         ) : null}
 
+        {showElevation ? (
         <div className="flex flex-col gap-2">
           <span className="text-xs font-medium text-muted-foreground">Elevation range (optional)</span>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -305,6 +344,7 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
             highest camp. Enter either or both.
           </span>
         </div>
+        ) : null}
 
         <Button
           type="button"
@@ -368,41 +408,6 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
             )}
           </div>
         ) : null}
-      </Field>
-
-      {/* Activities (multi-select) */}
-      <Field label="Activities" icon={<Mountain />} divided>
-        <p className="-mt-1 text-xs text-muted-foreground">Pick all that apply — mix outdoor and city time.</p>
-        <div className="flex flex-wrap gap-2">
-          {ACTIVITIES.map((a) => {
-            const active = activities.includes(a)
-            return (
-              <button
-                key={a}
-                type="button"
-                onClick={() => toggleActivity(a)}
-                aria-pressed={active}
-                className={[
-                  "flex h-11 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-all duration-150 active:scale-[0.96]",
-                  active
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                    : "border-input bg-card text-foreground hover:bg-muted hover:shadow-sm",
-                ].join(" ")}
-              >
-                <span
-                  className={[
-                    "flex size-5 items-center justify-center rounded-md border text-xs",
-                    active ? "border-primary-foreground/60 bg-primary-foreground/20" : "border-border",
-                  ].join(" ")}
-                  aria-hidden="true"
-                >
-                  {active ? "✓" : ""}
-                </span>
-                {a}
-              </button>
-            )
-          })}
-        </div>
       </Field>
 
       {/* People */}
