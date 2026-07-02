@@ -21,8 +21,10 @@ export type DestinationWeather = {
   cold: boolean
   /** Elevation of the weather station / town (ft), when known. */
   stationElevationFt: number | null
-  /** Degrees F subtracted for the elevation gain to the target camp. */
-  elevationAdjustF: number
+  /** Degrees F subtracted from the daytime HIGH (uses your lower elevation). */
+  highAdjustF: number
+  /** Degrees F subtracted from the nighttime LOW (uses your higher camp elevation). */
+  lowAdjustF: number
   /** ISO country code of the resolved place (lowercase), when known. */
   countryCode: string | null
   summary: string
@@ -204,8 +206,8 @@ function summarize(d: DestinationWeather): string {
   const cold = d.cold ? ", cold nights" : ""
   const src = d.source === "historical" ? " (typical for these dates)" : ""
   const adj =
-    d.elevationAdjustF > 0
-      ? ` (adjusted ${d.elevationAdjustF}°F colder for your camp elevation)`
+    d.highAdjustF > 0 || d.lowAdjustF > 0
+      ? ` (cooled for elevation: highs −${d.highAdjustF}°F, lows −${d.lowAdjustF}°F)`
       : ""
   return `Highs ${hi} / lows ${lo}, ${wet}${cold}${src}${adj}.`
 }
@@ -214,7 +216,8 @@ export async function checkWeather(
   destinations: string[],
   startDate: string,
   endDate: string,
-  targetElevationFt?: number | null,
+  minElevationFt?: number | null,
+  maxElevationFt?: number | null,
 ): Promise<WeatherResult> {
   const queries = destinations.map((s) => s.trim()).filter(Boolean)
   if (queries.length === 0 || !startDate || !endDate) {
@@ -225,7 +228,13 @@ export async function checkWeather(
       error: "Missing destinations or dates.",
     }
   }
-  const targetFt = typeof targetElevationFt === "number" && targetElevationFt > 0 ? targetElevationFt : null
+  const clean = (v: number | null | undefined) => (typeof v === "number" && v > 0 ? v : null)
+  const minFt = clean(minElevationFt)
+  const maxFt = clean(maxElevationFt)
+  // Daytime highs happen at your LOW elevation, nighttime lows at your HIGH camp.
+  // If only one is given, use it for both.
+  const lowElevFt = minFt ?? maxFt // elevation that governs the daytime HIGH
+  const highElevFt = maxFt ?? minFt // elevation that governs the nighttime LOW
 
   const results = await Promise.all(
     queries.map(async (query): Promise<DestinationWeather> => {
@@ -242,7 +251,8 @@ export async function checkWeather(
           rain: false,
           cold: false,
           stationElevationFt: null,
-          elevationAdjustF: 0,
+          highAdjustF: 0,
+          lowAdjustF: 0,
           countryCode: null,
           summary: "",
         }
@@ -251,8 +261,16 @@ export async function checkWeather(
       }
 
       // How many degrees to subtract for climbing above the town/station.
-      const gainFt = targetFt != null && geo.elevationFt != null ? Math.max(0, targetFt - geo.elevationFt) : 0
-      const elevationAdjustF = Math.round(gainFt * LAPSE_F_PER_FT)
+      // Highs use your lower elevation; lows use your higher camp elevation.
+      const stationFt = geo.elevationFt
+      const highAdjustF =
+        lowElevFt != null && stationFt != null
+          ? Math.round(Math.max(0, lowElevFt - stationFt) * LAPSE_F_PER_FT)
+          : 0
+      const lowAdjustF =
+        highElevFt != null && stationFt != null
+          ? Math.round(Math.max(0, highElevFt - stationFt) * LAPSE_F_PER_FT)
+          : 0
 
       const daily = await fetchDaily(geo.lat, geo.lon, startDate, endDate)
       if (!daily || daily.data.tmax.length === 0) {
@@ -267,7 +285,8 @@ export async function checkWeather(
           rain: false,
           cold: false,
           stationElevationFt: geo.elevationFt,
-          elevationAdjustF,
+          highAdjustF,
+          lowAdjustF,
           countryCode: geo.countryCode,
           summary: "No weather data available for those dates.",
         }
@@ -275,9 +294,10 @@ export async function checkWeather(
       }
 
       const { tmax, tmin, precip, precipProb } = daily.data
-      // Cool the town forecast down to the camp elevation before thresholds.
-      const adjTmax = tmax.map((t) => t - elevationAdjustF)
-      const adjTmin = tmin.map((t) => t - elevationAdjustF)
+      // Cool the forecast to your elevation before thresholds: highs by your
+      // lower (daytime) elevation, lows by your higher (camp) elevation.
+      const adjTmax = tmax.map((t) => t - highAdjustF)
+      const adjTmin = tmin.map((t) => t - lowAdjustF)
       const tempMaxF = round(Math.max(...adjTmax))
       const tempMinF = round(Math.min(...adjTmin))
       const precipInMax = Math.max(0, ...precip)
@@ -297,7 +317,8 @@ export async function checkWeather(
         rain,
         cold,
         stationElevationFt: geo.elevationFt,
-        elevationAdjustF,
+        highAdjustF,
+        lowAdjustF,
         countryCode: geo.countryCode,
         summary: "",
       }
@@ -313,7 +334,7 @@ export async function checkWeather(
     international: results.some((r) => r.found && r.countryCode != null && r.countryCode !== HOME_COUNTRY),
   }
   const anyHistorical = results.some((r) => r.found && r.source === "historical")
-  const anyElevation = results.some((r) => r.found && r.elevationAdjustF > 0)
+  const anyElevation = results.some((r) => r.found && (r.highAdjustF > 0 || r.lowAdjustF > 0))
   const note = [
     anyHistorical ? "Far-out dates use typical weather from the same time last year." : "",
     anyElevation ? "Temps cooled ~3.5°F per 1,000 ft for your camp elevation." : "",
