@@ -64,21 +64,23 @@ export default function Page() {
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 pb-10">
       {/* Hero header with topographic texture */}
       <header
-        className="relative -mx-4 overflow-hidden rounded-b-3xl bg-[#1f3d2e] px-5 pb-7 pt-8 text-primary-foreground shadow-sm"
+        className="relative -mx-4 overflow-hidden rounded-b-3xl bg-[#2f6048] px-5 pb-7 pt-8 text-white shadow-sm"
         style={{
           backgroundImage: "url(/topo-hero.png)",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#16301f] via-[#1f3d2e]/40 to-transparent" />
+        {/* Brightening layer so the topo texture reads and the banner stays vibrant in dark mode */}
+        <div className="pointer-events-none absolute inset-0 bg-[#3a7256]/45" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1f3d2e]/60 via-transparent to-white/5" />
         <div className="relative flex items-start justify-between gap-3">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-primary-foreground/15 backdrop-blur-sm ring-1 ring-primary-foreground/25">
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm ring-1 ring-white/25">
             <Mountain className="size-5" aria-hidden="true" />
           </span>
           <Link
             href="/defaults"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-foreground/10 px-3 py-1.5 text-sm font-medium text-primary-foreground/90 ring-1 ring-primary-foreground/20 backdrop-blur-sm transition-colors hover:bg-primary-foreground/20"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium text-white/90 ring-1 ring-white/20 backdrop-blur-sm transition-colors hover:bg-white/20"
           >
             <SlidersHorizontal className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Customize defaults</span>
@@ -87,7 +89,7 @@ export default function Page() {
         </div>
         <div className="relative mt-5">
           <h1 className="text-pretty text-2xl font-bold leading-tight sm:text-3xl">Adventure Packing Planner</h1>
-          <p className="mt-1.5 max-w-md text-pretty text-sm text-primary-foreground/80">
+          <p className="mt-1.5 max-w-md text-pretty text-sm text-white/80">
             Smart, reusable packing lists that adapt to your dates, destinations, and the forecast.
           </p>
         </div>
