@@ -1,7 +1,7 @@
 "use server"
 
 import { customAlphabet } from "nanoid"
-import { eq, inArray } from "drizzle-orm"
+import { desc, eq, inArray } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { sharedTrips } from "@/lib/db/schema"
 import { tripActivities, type Activity, type Trip, type TripSummary } from "@/lib/types"
@@ -80,5 +80,14 @@ export async function getTripSummaries(codes: string[]): Promise<TripSummary[]> 
     .select()
     .from(sharedTrips)
     .where(inArray(sharedTrips.code, codes))
+  return rows.map((row) => summarize(row.code, row.data, row.updatedAt))
+}
+
+/** Fetch summaries for every shared trip, newest first (for the home screen list). */
+export async function getAllTripSummaries(): Promise<TripSummary[]> {
+  const rows = await db
+    .select()
+    .from(sharedTrips)
+    .orderBy(desc(sharedTrips.updatedAt))
   return rows.map((row) => summarize(row.code, row.data, row.updatedAt))
 }

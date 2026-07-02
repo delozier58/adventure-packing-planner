@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Compass, Loader2, Minus, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { generateChecklist, newId } from "@/lib/gear-library"
+import { generateChecklist, newId, type ListDefaults } from "@/lib/gear-library"
 import {
   ACTIVITIES,
   emptyWeather,
@@ -22,9 +22,10 @@ type Props = {
   onCreate: (trip: Trip) => void
   onCancel?: () => void
   submitting?: boolean
+  defaults?: ListDefaults
 }
 
-export function TripSetup({ onCreate, onCancel, submitting }: Props) {
+export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
   const [name, setName] = useState("")
   const [activities, setActivities] = useState<Activity[]>(["Backpacking"])
   const [season, setSeason] = useState<Season>("Summer")
@@ -52,7 +53,7 @@ export function TripSetup({ onCreate, onCancel, submitting }: Props) {
       id: newId(),
       name: tripName,
       ...base,
-      items: generateChecklist(base),
+      items: generateChecklist(base, defaults),
       createdAt: Date.now(),
     }
     onCreate(trip)
