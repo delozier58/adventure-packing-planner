@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Compass, Loader2, Minus, Plus } from "lucide-react"
+import { CloudSun, Compass, Loader2, MapPin, Minus, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { generateChecklist, newId, type ListDefaults } from "@/lib/gear-library"
+import { checkWeather, type WeatherResult } from "@/app/actions/weather"
 import {
   ACTIVITIES,
   emptyWeather,
@@ -17,6 +18,16 @@ import {
   type Trip,
   type Weather,
 } from "@/lib/types"
+
+/** Nights between two ISO dates (0 if invalid or non-positive). */
+function nightsBetween(start: string, end: string): number {
+  if (!start || !end) return 0
+  const a = new Date(`${start}T00:00:00`).getTime()
+  const b = new Date(`${end}T00:00:00`).getTime()
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0
+  const d = Math.round((b - a) / 86400000)
+  return d > 0 ? d : 0
+}
 
 type Props = {
   onCreate: (trip: Trip) => void
@@ -33,6 +44,49 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
   const [people, setPeople] = useState<Person[]>(["Danielle", "Tommy"])
   const [weather, setWeather] = useState<Weather>(emptyWeather())
 
+  // Dates & destinations for the weather lookup.
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [destinations, setDestinations] = useState<string[]>([])
+  const [destInput, setDestInput] = useState("")
+  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherResult, setWeatherResult] = useState<WeatherResult | null>(null)
+
+  const hasDates = Boolean(startDate && endDate)
+  const derivedNights = hasDates ? nightsBetween(startDate, endDate) : 0
+  const effectiveNights = hasDates ? derivedNights : nights
+
+  function addDestination() {
+    const value = destInput.trim()
+    if (!value) return
+    setDestinations((prev) => (prev.some((d) => d.toLowerCase() === value.toLowerCase()) ? prev : [...prev, value]))
+    setDestInput("")
+  }
+
+  function removeDestination(value: string) {
+    setDestinations((prev) => prev.filter((d) => d !== value))
+  }
+
+  async function handleCheckWeather() {
+    if (destinations.length === 0 || !hasDates) return
+    setWeatherLoading(true)
+    try {
+      const result = await checkWeather(destinations, startDate, endDate)
+      setWeatherResult(result)
+      // Auto-flip the condition toggles that drive gear selection.
+      setWeather((prev) => ({ ...prev, rain: result.combined.rain, cold: result.combined.cold }))
+    } catch {
+      setWeatherResult({
+        destinations: [],
+        combined: { rain: false, cold: false },
+        note: "",
+        error: "Weather lookup failed. Try again.",
+      })
+    } finally {
+      setWeatherLoading(false)
+    }
+  }
+
   function togglePerson(p: Person) {
     setPeople((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]))
   }
@@ -48,11 +102,19 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const tripName = name.trim() || `${activities[0] ?? "New"} Trip`
-    const base = { activities, season, nights, people, weather }
+    const base = { activities, season, nights: effectiveNights, people, weather }
+    const weatherNote = weatherResult?.destinations
+      .filter((d) => d.found)
+      .map((d) => `${d.resolvedName ?? d.query}: ${d.summary}`)
+      .join(" ")
     const trip: Trip = {
       id: newId(),
       name: tripName,
       ...base,
+      destinations: destinations.length > 0 ? destinations : undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      weatherNote: weatherNote || undefined,
       items: generateChecklist(base, defaults),
       createdAt: Date.now(),
     }
@@ -127,34 +189,178 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         />
       </Field>
 
-      {/* Nights */}
-      <Field label="Number of nights">
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-lg"
-            aria-label="Decrease nights"
-            onClick={() => setNights((n) => Math.max(0, n - 1))}
-            className="size-11 rounded-lg"
-          >
-            <Minus className="size-4" />
-          </Button>
-          <span className="min-w-12 text-center text-lg font-semibold tabular-nums" aria-live="polite">
-            {nights}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-lg"
-            aria-label="Increase nights"
-            onClick={() => setNights((n) => Math.min(60, n + 1))}
-            className="size-11 rounded-lg"
-          >
-            <Plus className="size-4" />
-          </Button>
-          <span className="text-sm text-muted-foreground">{nights === 1 ? "night" : "nights"}</span>
+      {/* Dates */}
+      <Field label="Trip dates">
+        <p className="-mt-1 text-xs text-muted-foreground">
+          Add dates to auto-count nights and look up the weather.
+        </p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            Start
+            <input
+              type="date"
+              value={startDate}
+              max={endDate || undefined}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="h-11 w-full rounded-lg border border-input bg-card px-3 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+            End
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="h-11 w-full rounded-lg border border-input bg-card px-3 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+            />
+          </label>
         </div>
+        {hasDates ? (
+          <p className="text-sm text-muted-foreground">
+            {derivedNights} {derivedNights === 1 ? "night" : "nights"} — used to size your list.
+          </p>
+        ) : null}
+      </Field>
+
+      {/* Nights (manual fallback when no dates are set) */}
+      {!hasDates ? (
+        <Field label="Number of nights">
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-lg"
+              aria-label="Decrease nights"
+              onClick={() => setNights((n) => Math.max(0, n - 1))}
+              className="size-11 rounded-lg"
+            >
+              <Minus className="size-4" />
+            </Button>
+            <span className="min-w-12 text-center text-lg font-semibold tabular-nums" aria-live="polite">
+              {nights}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-lg"
+              aria-label="Increase nights"
+              onClick={() => setNights((n) => Math.min(60, n + 1))}
+              className="size-11 rounded-lg"
+            >
+              <Plus className="size-4" />
+            </Button>
+            <span className="text-sm text-muted-foreground">{nights === 1 ? "night" : "nights"}</span>
+          </div>
+        </Field>
+      ) : null}
+
+      {/* Destinations + weather lookup */}
+      <Field label="Destinations">
+        <p className="-mt-1 text-xs text-muted-foreground">
+          Add one or more places — we&apos;ll check the forecast and adjust your gear.
+        </p>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <MapPin
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <input
+              value={destInput}
+              onChange={(e) => setDestInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) {
+                  e.preventDefault()
+                  addDestination()
+                }
+              }}
+              placeholder="e.g. Aspen, CO"
+              className="h-11 w-full rounded-lg border border-input bg-card pl-9 pr-3 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+            />
+          </div>
+          <Button type="button" variant="outline" onClick={addDestination} className="h-11 rounded-lg">
+            Add
+          </Button>
+        </div>
+
+        {destinations.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {destinations.map((d) => (
+              <span
+                key={d}
+                className="flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-sm"
+              >
+                {d}
+                <button
+                  type="button"
+                  onClick={() => removeDestination(d)}
+                  aria-label={`Remove ${d}`}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleCheckWeather}
+          disabled={destinations.length === 0 || !hasDates || weatherLoading}
+          className="h-11 rounded-lg"
+        >
+          {weatherLoading ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <CloudSun className="size-4" aria-hidden="true" />
+          )}
+          {weatherLoading ? "Checking weather…" : "Check weather & adjust list"}
+        </Button>
+        {!hasDates && destinations.length > 0 ? (
+          <p className="text-xs text-muted-foreground">Add trip dates above to enable the weather check.</p>
+        ) : null}
+
+        {weatherResult ? (
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/50 p-3">
+            {weatherResult.error ? (
+              <p className="text-sm text-destructive">{weatherResult.error}</p>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <CloudSun className="size-4 text-accent-foreground" aria-hidden="true" />
+                  Forecast summary
+                </div>
+                <ul className="flex flex-col gap-1.5">
+                  {weatherResult.destinations.map((d) => (
+                    <li key={d.query} className="text-sm">
+                      <span className="font-medium">{d.resolvedName ?? d.query}</span>
+                      <span className="text-muted-foreground"> — {d.summary}</span>
+                    </li>
+                  ))}
+                </ul>
+                {weatherResult.combined.rain || weatherResult.combined.cold ? (
+                  <p className="text-xs text-muted-foreground">
+                    Added gear for{" "}
+                    {[weatherResult.combined.rain ? "rain" : null, weatherResult.combined.cold ? "cold nights" : null]
+                      .filter(Boolean)
+                      .join(" & ")}
+                    . You can still adjust the conditions below.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No rain or cold flagged. Adjust conditions below if needed.
+                  </p>
+                )}
+                {weatherResult.note ? (
+                  <p className="text-xs text-muted-foreground">{weatherResult.note}</p>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : null}
       </Field>
 
       {/* People */}
