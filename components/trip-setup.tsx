@@ -168,41 +168,6 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
         />
       </Field>
 
-      {/* Activities (multi-select) */}
-      <Field label="Activities">
-        <p className="-mt-1 text-xs text-muted-foreground">Pick all that apply — mix outdoor and city time.</p>
-        <div className="flex flex-wrap gap-2">
-          {ACTIVITIES.map((a) => {
-            const active = activities.includes(a)
-            return (
-              <button
-                key={a}
-                type="button"
-                onClick={() => toggleActivity(a)}
-                aria-pressed={active}
-                className={[
-                  "flex h-11 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors",
-                  active
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-input bg-card text-foreground hover:bg-muted",
-                ].join(" ")}
-              >
-                <span
-                  className={[
-                    "flex size-5 items-center justify-center rounded-md border text-xs",
-                    active ? "border-primary-foreground/60 bg-primary-foreground/20" : "border-border",
-                  ].join(" ")}
-                  aria-hidden="true"
-                >
-                  {active ? "✓" : ""}
-                </span>
-                {a}
-              </button>
-            )
-          })}
-        </div>
-      </Field>
-
       {/* Dates */}
       <Field label="Trip dates">
         <p className="-mt-1 text-xs text-muted-foreground">
@@ -403,6 +368,41 @@ export function TripSetup({ onCreate, onCancel, submitting, defaults }: Props) {
             )}
           </div>
         ) : null}
+      </Field>
+
+      {/* Activities (multi-select) */}
+      <Field label="Activities">
+        <p className="-mt-1 text-xs text-muted-foreground">Pick all that apply — mix outdoor and city time.</p>
+        <div className="flex flex-wrap gap-2">
+          {ACTIVITIES.map((a) => {
+            const active = activities.includes(a)
+            return (
+              <button
+                key={a}
+                type="button"
+                onClick={() => toggleActivity(a)}
+                aria-pressed={active}
+                className={[
+                  "flex h-11 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-card text-foreground hover:bg-muted",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "flex size-5 items-center justify-center rounded-md border text-xs",
+                    active ? "border-primary-foreground/60 bg-primary-foreground/20" : "border-border",
+                  ].join(" ")}
+                  aria-hidden="true"
+                >
+                  {active ? "✓" : ""}
+                </span>
+                {a}
+              </button>
+            )
+          })}
+        </div>
       </Field>
 
       {/* People */}
